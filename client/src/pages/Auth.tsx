@@ -5,20 +5,58 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock } from "lucide-react";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    const form = e.target as HTMLFormElement;
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       setLocation("/home");
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const form = e.target as HTMLFormElement;
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setLocation("/home");
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,18 +82,18 @@ export default function Auth() {
         <TabsContent value="login">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="login-email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                <Input id="email" type="email" placeholder="student@example.com" className="pl-10 h-12 rounded-xl bg-muted/30 border-muted-foreground/20" />
+                <Input id="login-email" name="email" type="email" placeholder="student@example.com" className="pl-10 h-12 rounded-xl bg-muted/30 border-muted-foreground/20" required />
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="login-password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                <Input id="password" type="password" placeholder="••••••••" className="pl-10 h-12 rounded-xl bg-muted/30 border-muted-foreground/20" />
+                <Input id="login-password" name="password" type="password" placeholder="••••••••" className="pl-10 h-12 rounded-xl bg-muted/30 border-muted-foreground/20" required />
               </div>
             </div>
 
@@ -70,20 +108,22 @@ export default function Auth() {
         </TabsContent>
 
         <TabsContent value="register">
-          <form className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input placeholder="Ali Khan" className="h-12 rounded-xl bg-muted/30 border-muted-foreground/20" />
+              <Label htmlFor="reg-name">Full Name</Label>
+              <Input id="reg-name" name="name" placeholder="Ali Khan" className="h-12 rounded-xl bg-muted/30 border-muted-foreground/20" required />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" placeholder="student@example.com" className="h-12 rounded-xl bg-muted/30 border-muted-foreground/20" />
+              <Label htmlFor="reg-email">Email</Label>
+              <Input id="reg-email" name="email" type="email" placeholder="student@example.com" className="h-12 rounded-xl bg-muted/30 border-muted-foreground/20" required />
             </div>
             <div className="space-y-2">
-              <Label>Password</Label>
-              <Input type="password" placeholder="Create a password" className="h-12 rounded-xl bg-muted/30 border-muted-foreground/20" />
+              <Label htmlFor="reg-password">Password</Label>
+              <Input id="reg-password" name="password" type="password" placeholder="Create a password" className="h-12 rounded-xl bg-muted/30 border-muted-foreground/20" required />
             </div>
-            <Button className="w-full h-12 text-base rounded-xl mt-4">Create Account</Button>
+            <Button type="submit" className="w-full h-12 text-base rounded-xl mt-4" disabled={isLoading}>
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </Button>
           </form>
         </TabsContent>
       </Tabs>
