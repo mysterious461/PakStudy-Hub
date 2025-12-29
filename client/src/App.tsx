@@ -7,6 +7,9 @@ import NotFound from "@/pages/not-found";
 import Onboarding from "@/pages/Onboarding";
 import Auth from "@/pages/Auth";
 import Home from "@/pages/Home";
+import Subjects from "@/pages/Subjects";
+import Post from "@/pages/Post";
+import Profile from "@/pages/Profile";
 
 function Router() {
   return (
@@ -15,9 +18,9 @@ function Router() {
         <Route path="/" component={Onboarding} />
         <Route path="/auth" component={Auth} />
         <Route path="/home" component={Home} />
-        <Route path="/subjects" component={() => <Home />} /> {/* Mock */}
-        <Route path="/post" component={() => <Home />} /> {/* Mock */}
-        <Route path="/profile" component={() => <Home />} /> {/* Mock */}
+        <Route path="/subjects" component={Subjects} />
+        <Route path="/post" component={Post} />
+        <Route path="/profile" component={Profile} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>
