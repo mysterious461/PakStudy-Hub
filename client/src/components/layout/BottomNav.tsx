@@ -10,27 +10,27 @@ export function BottomNav() {
     { icon: Home, label: "Home", path: "/home" },
     { icon: BookOpen, label: "Subjects", path: "/subjects" },
     { icon: PlusSquare, label: "Post", path: "/post" },
-    { icon: User, label: "Profile", path: "/profile" },
+    { icon: User, label: "Me", path: "/profile" },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/80 backdrop-blur-lg pb-safe z-50">
-      <nav className="flex items-center justify-around h-16">
+    <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/80 backdrop-blur-lg pb-safe z-50 w-full max-w-full overflow-hidden">
+      <nav className="flex items-center justify-between h-16 w-full px-2 max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive = location === item.path;
           return (
             <Link key={item.path} href={item.path}>
               <div
                 className={cn(
-                  "flex flex-col items-center justify-center w-full h-full space-y-1 cursor-pointer transition-colors duration-200",
+                  "flex flex-col items-center justify-center flex-1 h-full min-w-0 px-1 space-y-1 cursor-pointer transition-colors duration-200",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <item.icon
                   strokeWidth={isActive ? 2.5 : 2}
-                  className={cn("w-6 h-6", isActive && "animate-in zoom-in-50 duration-200")}
+                  className={cn("w-6 h-6 shrink-0", isActive && "animate-in zoom-in-50 duration-200")}
                 />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium truncate w-full text-center">{item.label}</span>
               </div>
             </Link>
           );
