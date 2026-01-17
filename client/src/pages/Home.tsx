@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Bell, Filter, MessageSquare, ArrowUp, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useLocation } from "wouter";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English", "Urdu"];
@@ -13,6 +14,7 @@ const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English"
 export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const q = query(collection(db, "questions"), orderBy("createdAt", "desc"));
@@ -27,6 +29,18 @@ export default function Home() {
 
     return () => unsubscribe();
   }, []);
+
+  const handleUpvote = async (e: React.MouseEvent, postId: string) => {
+    e.stopPropagation();
+    try {
+      const postRef = doc(db, "questions", postId);
+      await updateDoc(postRef, {
+        upvotes: increment(1)
+      });
+    } catch (error) {
+      console.error("Error upvoting:", error);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-muted/10 relative">
@@ -77,7 +91,11 @@ export default function Home() {
           <div className="flex items-center justify-center h-32 text-muted-foreground">No questions yet. Be the first to ask!</div>
         ) : (
           posts.map((post) => (
-            <div key={post.id} className="bg-card p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-shadow">
+            <div 
+              key={post.id} 
+              className="bg-card p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setLocation(`/question/${post.id}`)}
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
@@ -107,7 +125,10 @@ export default function Home() {
 
               <div className="flex items-center justify-between pt-3 border-t border-border/30">
                 <div className="flex items-center gap-4">
-                  <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group">
+                  <button 
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group"
+                    onClick={(e) => handleUpvote(e, post.id)}
+                  >
                     <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                     <span className="text-sm font-medium">{post.upvotes || 0}</span>
                   </button>

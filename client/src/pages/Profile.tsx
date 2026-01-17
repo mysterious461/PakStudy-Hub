@@ -140,6 +140,11 @@ export default function Profile() {
                          <SelectItem value="Grade 10">Grade 10</SelectItem>
                          <SelectItem value="Grade 11">Grade 11</SelectItem>
                          <SelectItem value="Grade 12">Grade 12</SelectItem>
+                         <SelectItem value="Matric">Matric</SelectItem>
+                         <SelectItem value="Intermediate">Intermediate</SelectItem>
+                         <SelectItem value="BS">BS</SelectItem>
+                         <SelectItem value="MS/MPhil">MS/MPhil</SelectItem>
+                         <SelectItem value="PhD">PhD</SelectItem>
                        </SelectContent>
                      </Select>
                    </div>

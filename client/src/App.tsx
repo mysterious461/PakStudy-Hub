@@ -10,6 +10,7 @@ import Home from "@/pages/Home";
 import Subjects from "@/pages/Subjects";
 import Post from "@/pages/Post";
 import Profile from "@/pages/Profile";
+import QuestionDetail from "@/pages/QuestionDetail";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
         <Route path="/subjects" component={Subjects} />
         <Route path="/post" component={Post} />
         <Route path="/profile" component={Profile} />
+        <Route path="/question/:id" component={QuestionDetail} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>
