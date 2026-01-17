@@ -1,56 +1,33 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Bell, Filter, MessageSquare, ArrowUp, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
-
-const SAMPLE_POSTS = [
-  {
-    id: 1,
-    user: "Ayesha Ahmed",
-    role: "Teacher",
-    time: "2h ago",
-    title: "Can someone explain the concept of organic chemistry functional groups?",
-    preview: "I'm having trouble understanding how to identify different functional groups in complex molecules...",
-    subject: "Chemistry",
-    tags: ["Grade 12", "Organic Chem"],
-    upvotes: 24,
-    comments: 8,
-    avatar: "AA"
-  },
-  {
-    id: 2,
-    user: "Bilal Khan",
-    role: "Student",
-    time: "4h ago",
-    title: "Past papers for FBISE Class 10 Computer Science?",
-    preview: "Does anyone have the link to 2023 solved past papers? I have my exam next week and really need to practice.",
-    subject: "Computer Science",
-    tags: ["FBISE", "Class 10"],
-    upvotes: 15,
-    comments: 12,
-    avatar: "BK"
-  },
-  {
-    id: 3,
-    user: "Hassan Raza",
-    role: "Student",
-    time: "5m ago",
-    title: "Physics numericals Chapter 3 - Kinematics",
-    preview: "Question 3.4 is really confusing. A car starts from rest... how do I apply the second equation of motion here?",
-    subject: "Physics",
-    tags: ["Class 9", "Numericals"],
-    upvotes: 2,
-    comments: 0,
-    avatar: "HR"
-  }
-];
 
 const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English", "Urdu"];
 
 export default function Home() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, "questions"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedPosts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPosts(fetchedPosts);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="h-full flex flex-col bg-muted/10 relative">
       {/* Header */}
@@ -94,56 +71,56 @@ export default function Home() {
 
       {/* Feed */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
-        {SAMPLE_POSTS.map((post) => (
-          <div key={post.id} className="bg-card p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                  {post.avatar}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-sm">{post.user}</h3>
-                    {post.role === "Teacher" && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-primary/30 text-primary bg-primary/5">Teacher</Badge>
-                    )}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-32 text-muted-foreground">Loading questions...</div>
+        ) : posts.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-muted-foreground">No questions yet. Be the first to ask!</div>
+        ) : (
+          posts.map((post) => (
+            <div key={post.id} className="bg-card p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {post.userName?.charAt(0) || "U"}
                   </div>
-                  <p className="text-xs text-muted-foreground">{post.time}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-sm">{post.userName || "Anonymous"}</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Just now</p>
+                  </div>
                 </div>
-              </div>
-              <button className="text-muted-foreground hover:text-foreground">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mb-3">
-              <div className="flex gap-2 mb-2">
-                 <Badge variant="secondary" className="text-[10px] font-normal px-2 bg-accent/10 text-accent-foreground border-transparent rounded-md text-amber-700 dark:text-amber-400">{post.subject}</Badge>
-                 {post.tags.map(tag => (
-                   <span key={tag} className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md flex items-center">#{tag}</span>
-                 ))}
-              </div>
-              <h2 className="font-bold text-lg leading-snug mb-2">{post.title}</h2>
-              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                {post.preview}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-border/30">
-              <div className="flex items-center gap-4">
-                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group">
-                  <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                  <span className="text-sm font-medium">{post.upvotes}</span>
-                </button>
-                <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
-                  <MessageSquare className="w-5 h-5" />
-                  <span className="text-sm font-medium">{post.comments}</span>
+                <button className="text-muted-foreground hover:text-foreground">
+                  <MoreHorizontal className="w-5 h-5" />
                 </button>
               </div>
-              <button className="text-xs font-medium text-primary hover:underline">Read more</button>
+
+              <div className="mb-3">
+                <div className="flex gap-2 mb-2">
+                   <Badge variant="secondary" className="text-[10px] font-normal px-2 bg-accent/10 text-accent-foreground border-transparent rounded-md text-amber-700 dark:text-amber-400">{post.subject}</Badge>
+                </div>
+                <h2 className="font-bold text-lg leading-snug mb-2">{post.title}</h2>
+                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                  {post.content}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-border/30">
+                <div className="flex items-center gap-4">
+                  <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group">
+                    <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
+                    <span className="text-sm font-medium">{post.upvotes || 0}</span>
+                  </button>
+                  <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
+                    <MessageSquare className="w-5 h-5" />
+                    <span className="text-sm font-medium">{post.commentsCount || 0}</span>
+                  </button>
+                </div>
+                <button className="text-xs font-medium text-primary hover:underline">Read more</button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
         
         <div className="h-4" /> {/* Spacer for bottom nav */}
       </div>

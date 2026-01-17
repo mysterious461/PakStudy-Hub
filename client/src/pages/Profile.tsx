@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, School, Book } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User } from "lucide-react";
+import { auth, db } from "@/lib/firebase";
 import { signOut, updateProfile } from "firebase/auth";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
@@ -19,11 +20,34 @@ export default function Profile() {
   const user = auth.currentUser;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "Student Name",
     grade: "Grade 12",
-    track: "Pre-Engineering"
+    track: "Pre-Engineering",
+    university: "",
+    subjects: [] as string[]
   });
+
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setProfileData(data);
+        setFormData({
+          displayName: data.name || user.displayName || "Student Name",
+          grade: data.grade || "Grade 12",
+          track: data.track || "Pre-Engineering",
+          university: data.university || "",
+          subjects: data.subjects || []
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -34,6 +58,13 @@ export default function Profile() {
     try {
       if (user) {
         await updateProfile(user, { displayName: formData.displayName });
+        await updateDoc(doc(db, "users", user.uid), {
+          name: formData.displayName,
+          grade: formData.grade,
+          track: formData.track,
+          university: formData.university,
+          subjects: formData.subjects
+        });
       }
       setIsEditing(false);
       toast({
@@ -127,11 +158,22 @@ export default function Profile() {
                      </Select>
                    </div>
                  </div>
+
+                 <div className="space-y-1.5">
+                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">University / School</Label>
+                   <Input 
+                     value={formData.university} 
+                     onChange={(e) => setFormData({...formData, university: e.target.value})}
+                     placeholder="Enter your institution"
+                     className="h-10 bg-muted/30 border-none rounded-xl focus-visible:ring-1 ring-primary/20" 
+                   />
+                 </div>
                </div>
              ) : (
                <>
                  <h2 className="text-xl font-bold">{formData.displayName}</h2>
-                 <p className="text-muted-foreground text-sm mb-4">{user?.email || "student@example.com"}</p>
+                 <p className="text-muted-foreground text-sm mb-1">{user?.email || "student@example.com"}</p>
+                 <p className="text-xs text-primary font-medium mb-4">{formData.university || "Add your university"}</p>
                  
                  <div className="flex gap-2 mb-6">
                    <Badge variant="secondary" className="px-3 py-1 bg-accent/10 text-accent-foreground border-none">{formData.grade}</Badge>
@@ -140,7 +182,7 @@ export default function Profile() {
                </>
              )}
 
-             <div className="grid grid-cols-3 gap-8 w-full border-t border-border/50 pt-6 mt-2">
+             <div className="grid grid-cols-3 gap-8 w-full border-t border-border/50 pt-6 mt-2 text-center">
                <div>
                  <div className="text-xl font-bold">12</div>
                  <div className="text-xs text-muted-foreground">Questions</div>
