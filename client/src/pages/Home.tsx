@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, Filter, MessageSquare, ArrowUp, MoreHorizontal } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useLocation } from "wouter";
@@ -14,6 +15,7 @@ const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English"
 export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -42,6 +44,10 @@ export default function Home() {
     }
   };
 
+  const filteredPosts = selectedCategory === "All" 
+    ? posts 
+    : posts.filter(post => post.subject === selectedCategory || (selectedCategory === "Computer" && post.subject === "Computer Science"));
+
   return (
     <div className="h-full flex flex-col bg-muted/10 relative">
       {/* Header */}
@@ -68,13 +74,14 @@ export default function Home() {
 
       {/* Categories */}
       <div className="bg-background pb-2">
-        <ScrollArea className="w-full whitespace-nowrap px-6">
+        <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex w-max space-x-2 pb-2 px-6">
-            {CATEGORIES.map((cat, i) => (
+            {CATEGORIES.map((cat) => (
               <Badge 
                 key={cat} 
-                variant={i === 0 ? "default" : "secondary"}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors ${i === 0 ? 'bg-primary hover:bg-primary/90' : 'bg-muted hover:bg-muted-foreground/10 text-muted-foreground'}`}
+                variant={selectedCategory === cat ? "default" : "secondary"}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors ${selectedCategory === cat ? 'bg-primary hover:bg-primary/90' : 'bg-muted hover:bg-muted-foreground/10 text-muted-foreground'}`}
               >
                 {cat}
               </Badge>
@@ -87,10 +94,15 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
         {isLoading ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground">Loading questions...</div>
-        ) : posts.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-muted-foreground">No questions yet. Be the first to ask!</div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+            <p>No questions found for {selectedCategory}.</p>
+            {selectedCategory !== "All" && (
+              <Button variant="link" onClick={() => setSelectedCategory("All")} className="text-primary">View all questions</Button>
+            )}
+          </div>
         ) : (
-          posts.map((post) => (
+          filteredPosts.map((post) => (
             <div 
               key={post.id} 
               className="bg-card p-4 rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-shadow cursor-pointer"
