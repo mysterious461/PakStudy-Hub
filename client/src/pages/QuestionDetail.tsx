@@ -3,7 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, ArrowUp, MessageSquare } from "lucide-react";
+import { ArrowLeft, Send, ArrowUp, MessageSquare, CheckCircle } from "lucide-react";
 import { doc, onSnapshot, collection, addDoc, serverTimestamp, updateDoc, increment, query, orderBy } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,37 @@ export default function QuestionDetail() {
       });
     } catch (error) {
       console.error("Error upvoting:", error);
+    }
+  };
+
+  const handleMarkCorrect = async (answerId: string) => {
+    if (!params?.id || question?.userId !== auth.currentUser?.uid) return;
+    
+    try {
+      // Unmark any previously correct answer
+      const prevCorrect = answers.find(a => a.isCorrect);
+      if (prevCorrect) {
+        await updateDoc(doc(db, "questions", params.id, "answers", prevCorrect.id), {
+          isCorrect: false
+        });
+      }
+
+      // Mark the new one as correct
+      await updateDoc(doc(db, "questions", params.id, "answers", answerId), {
+        isCorrect: true
+      });
+      
+      // Give points to the user who answered
+      const answer = answers.find(a => a.id === answerId);
+      if (answer && answer.userId) {
+        await updateDoc(doc(db, "users", answer.userId), {
+          reputation: increment(15)
+        }).catch(err => console.error("Could not update reputation:", err));
+      }
+      
+      toast({ title: "Answer marked as correct! (+15 reputation awarded)" });
+    } catch (error) {
+      console.error("Error marking correct:", error);
     }
   };
 
@@ -162,14 +193,33 @@ export default function QuestionDetail() {
             ) : (
               <div className="space-y-4 pb-4">
                 {answers.map((answer) => (
-                  <div key={answer.id} className="bg-card p-5 rounded-3xl space-y-3 border border-border/50 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-                        {answer.userName?.charAt(0) || "A"}
+                  <div key={answer.id} className={`bg-card p-5 rounded-3xl space-y-3 border shadow-sm hover:shadow-md transition-shadow ${answer.isCorrect ? 'border-primary/50 bg-primary/5' : 'border-border/50'}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+                          {answer.userName?.charAt(0) || "A"}
+                        </div>
+                        <span className="font-bold text-xs text-foreground/80">{answer.userName}</span>
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                        <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">Verified Member</span>
                       </div>
-                      <span className="font-bold text-xs text-foreground/80">{answer.userName}</span>
-                      <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                      <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">Verified Member</span>
+                      
+                      {answer.isCorrect ? (
+                        <Badge variant="secondary" className="bg-primary/20 text-primary hover:bg-primary/20 border-none px-2 py-0.5 text-[10px] gap-1">
+                          <CheckCircle className="w-3 h-3" /> Correct Answer
+                        </Badge>
+                      ) : (
+                        question?.userId === auth.currentUser?.uid && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-[10px] text-muted-foreground hover:text-primary"
+                            onClick={() => handleMarkCorrect(answer.id)}
+                          >
+                            Mark as Correct
+                          </Button>
+                        )
+                      )}
                     </div>
                     <p className="text-sm leading-relaxed font-medium text-foreground/90">{answer.content}</p>
                   </div>

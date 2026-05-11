@@ -25,7 +25,7 @@ export function MobileShell({ children, className }: MobileShellProps) {
         </div>
         
         {/* Main Content Area */}
-        <main className={cn("flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide relative", className)}>
+        <main className={cn("flex-1 flex flex-col relative w-full overflow-hidden", className)}>
           {children}
         </main>
       </div>

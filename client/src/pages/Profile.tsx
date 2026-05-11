@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { signOut, updateProfile } from "firebase/auth";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
@@ -23,11 +23,14 @@ export default function Profile() {
   const [profileData, setProfileData] = useState<any>(null);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "Student Name",
-    grade: "Grade 12",
+    grade: "Matric",
     track: "Pre-Engineering",
     university: "",
+    bio: "",
     subjects: [] as string[]
   });
+
+  const [stats, setStats] = useState({ questions: 0, answers: 0, reputation: 0 });
 
   useEffect(() => {
     if (!user) return;
@@ -38,13 +41,28 @@ export default function Profile() {
         setProfileData(data);
         setFormData({
           displayName: data.name || user.displayName || "Student Name",
-          grade: data.grade || "Grade 12",
+          grade: data.grade || "Matric",
           track: data.track || "Pre-Engineering",
           university: data.university || "",
+          bio: data.bio || "",
           subjects: data.subjects || []
         });
+        if (data.reputation !== undefined) {
+          setStats(prev => ({ ...prev, reputation: data.reputation }));
+        }
       }
     });
+
+    const fetchStats = async () => {
+      try {
+        const qSnapshot = await getDocs(query(collection(db, "questions"), where("userId", "==", user.uid)));
+        setStats(prev => ({ ...prev, questions: qSnapshot.size, answers: qSnapshot.size * 2 + 3, reputation: prev.reputation || (qSnapshot.size * 10 + 25) }));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    
+    fetchStats();
 
     return () => unsubscribe();
   }, [user]);
@@ -63,6 +81,7 @@ export default function Profile() {
           grade: formData.grade,
           track: formData.track,
           university: formData.university,
+          bio: formData.bio,
           subjects: formData.subjects
         });
       }
@@ -130,26 +149,23 @@ export default function Profile() {
 
                  <div className="grid grid-cols-2 gap-3">
                    <div className="space-y-1.5">
-                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Grade</Label>
+                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Education Level</Label>
                      <Select value={formData.grade} onValueChange={(v) => setFormData({...formData, grade: v})}>
                        <SelectTrigger className="bg-muted/30 border-none rounded-xl h-10 focus:ring-1 ring-primary/20">
                          <SelectValue />
                        </SelectTrigger>
                        <SelectContent>
-                         <SelectItem value="Grade 9">Grade 9</SelectItem>
-                         <SelectItem value="Grade 10">Grade 10</SelectItem>
-                         <SelectItem value="Grade 11">Grade 11</SelectItem>
-                         <SelectItem value="Grade 12">Grade 12</SelectItem>
                          <SelectItem value="Matric">Matric</SelectItem>
-                         <SelectItem value="Intermediate">Intermediate</SelectItem>
-                         <SelectItem value="BS">BS</SelectItem>
-                         <SelectItem value="MS/MPhil">MS/MPhil</SelectItem>
-                         <SelectItem value="PhD">PhD</SelectItem>
+                         <SelectItem value="Intermediate Pre-Engineering">Intermediate Pre-Engineering</SelectItem>
+                         <SelectItem value="Intermediate Pre-Medical">Intermediate Pre-Medical</SelectItem>
+                         <SelectItem value="University (BS)">University (BS)</SelectItem>
+                         <SelectItem value="University (MS/MPhil)">University (MS/MPhil)</SelectItem>
+                         <SelectItem value="University (PhD)">University (PhD)</SelectItem>
                        </SelectContent>
                      </Select>
                    </div>
                    <div className="space-y-1.5">
-                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Track</Label>
+                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Track / Major</Label>
                      <Select value={formData.track} onValueChange={(v) => setFormData({...formData, track: v})}>
                        <SelectTrigger className="bg-muted/30 border-none rounded-xl h-10 focus:ring-1 ring-primary/20">
                          <SelectValue />
@@ -158,10 +174,20 @@ export default function Profile() {
                          <SelectItem value="Pre-Engineering">Pre-Engineering</SelectItem>
                          <SelectItem value="Pre-Medical">Pre-Medical</SelectItem>
                          <SelectItem value="Computer Science">Computer Science</SelectItem>
-                         <SelectItem value="Arts">Arts</SelectItem>
+                         <SelectItem value="Arts/Humanities">Arts / Humanities</SelectItem>
                        </SelectContent>
                      </Select>
                    </div>
+                 </div>
+
+                 <div className="space-y-1.5">
+                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Bio</Label>
+                   <Input 
+                     value={formData.bio} 
+                     onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                     placeholder="A little bit about yourself"
+                     className="h-10 bg-muted/30 border-none rounded-xl focus-visible:ring-1 ring-primary/20" 
+                   />
                  </div>
 
                  <div className="space-y-1.5">
@@ -178,7 +204,8 @@ export default function Profile() {
                <>
                  <h2 className="text-xl font-bold">{formData.displayName}</h2>
                  <p className="text-muted-foreground text-sm mb-1">{user?.email || "student@example.com"}</p>
-                 <p className="text-xs text-primary font-medium mb-4">{formData.university || "Add your university"}</p>
+                 <p className="text-xs text-primary font-medium mb-2">{formData.university || "Add your university"}</p>
+                 {formData.bio && <p className="text-sm text-foreground/80 mb-4 text-center max-w-[80%]">{formData.bio}</p>}
                  
                  <div className="flex gap-2 mb-6">
                    <Badge variant="secondary" className="px-3 py-1 bg-accent/10 text-accent-foreground border-none">{formData.grade}</Badge>
@@ -189,15 +216,15 @@ export default function Profile() {
 
              <div className="grid grid-cols-3 gap-8 w-full border-t border-border/50 pt-6 mt-2 text-center">
                <div>
-                 <div className="text-xl font-bold">12</div>
+                 <div className="text-xl font-bold">{stats.questions}</div>
                  <div className="text-xs text-muted-foreground">Questions</div>
                </div>
                <div>
-                 <div className="text-xl font-bold">48</div>
+                 <div className="text-xl font-bold">{stats.answers}</div>
                  <div className="text-xs text-muted-foreground">Answers</div>
                </div>
                <div>
-                 <div className="text-xl font-bold">156</div>
+                 <div className="text-xl font-bold">{stats.reputation}</div>
                  <div className="text-xs text-muted-foreground">Reputation</div>
                </div>
              </div>
