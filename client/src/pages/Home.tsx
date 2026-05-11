@@ -9,6 +9,8 @@ import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } fro
 import { db, auth } from "@/lib/firebase";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FileText } from "lucide-react";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English", "Urdu"];
@@ -72,10 +74,42 @@ export default function Home() {
             <img src={logoImage} alt="Logo" className="w-8 h-8" />
             <h1 className="text-xl font-bold tracking-tight text-primary">PakStudy</h1>
           </div>
-          <button className="relative p-2 rounded-full hover:bg-muted/50 transition-colors">
-            <Bell className="w-6 h-6 text-foreground" />
-            <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-background" />
-          </button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <button className="relative p-2 rounded-full hover:bg-muted/50 transition-colors">
+                <Bell className="w-6 h-6 text-foreground" />
+                <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-background" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
+              <DialogHeader>
+                <DialogTitle>Notifications</DialogTitle>
+                <DialogDescription>
+                  Recent activity related to your courses.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm"><strong>Ali Khan</strong> answered your question in <strong>Computer Science</strong>.</p>
+                    <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm">New notes available for <strong>Software Engineering</strong>: "Midterm Preparation Guide"</p>
+                    <p className="text-xs text-muted-foreground mt-1">5 hours ago</p>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         
         <div className="relative">

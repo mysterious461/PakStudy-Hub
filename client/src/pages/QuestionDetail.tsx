@@ -211,43 +211,23 @@ export default function QuestionDetail() {
                           <SelectValue placeholder="Choose payment option" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="jazzcash">
-                            <div className="flex items-center gap-2">
-                              <Banknote className="w-4 h-4 text-orange-500" /> JazzCash
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="easypaisa">
-                            <div className="flex items-center gap-2">
-                              <Banknote className="w-4 h-4 text-green-500" /> EasyPaisa
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="nayapay">
-                            <div className="flex items-center gap-2">
-                              <Banknote className="w-4 h-4 text-teal-500" /> NayaPay
-                            </div>
-                          </SelectItem>
                           <SelectItem value="card">
                             <div className="flex items-center gap-2">
-                              <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="bank">
-                            <div className="flex items-center gap-2">
-                              <Landmark className="w-4 h-4 text-purple-500" /> Bank Transfer
+                              <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card (App Pay)
                             </div>
                           </SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                        Payment is processed securely by the app. The seller will receive the amount minus a 10% platform fee in their wallet.
+                      </p>
                     </div>
 
                     {paymentMethod && (
                       <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <Label>
-                          {paymentMethod === 'card' ? 'Card Number' : 
-                           paymentMethod === 'bank' ? 'IBAN Number' : 'Account/Mobile Number'}
-                        </Label>
+                        <Label>Card Number</Label>
                         <Input 
-                          placeholder={paymentMethod === 'card' ? '0000 0000 0000 0000' : '03XX XXXXXXX'} 
+                          placeholder="0000 0000 0000 0000" 
                           className="h-12 bg-muted/50 border-none rounded-xl"
                         />
                       </div>

@@ -11,44 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus, ChevronRight, FileText, Download, Banknote, CreditCard, Landmark, ArrowLeft } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-
-const EDUCATION_HIERARCHY = {
-  "Matriculation / O-Levels": {
-    "Science Group": ["Mathematics", "Physics", "Chemistry", "Biology", "Computer Science"],
-    "Arts Group": ["General Math", "General Science", "Education", "Islamic Studies"]
-  },
-  "Intermediate / A-Levels": {
-    "Pre-Engineering": ["Mathematics", "Physics", "Chemistry"],
-    "Pre-Medical": ["Biology", "Physics", "Chemistry"],
-    "ICS": ["Mathematics", "Physics", "Computer Science"],
-    "I.Com": ["Accounting", "Economics", "Business Math"],
-    "FA": ["Civics", "Education", "Islamic Studies"]
-  },
-  "Bachelors (BS)": {
-    "Computer Science (CS)": ["Programming Fundamentals", "Data Structures", "Database Systems", "Operating Systems", "Artificial Intelligence", "Computer Networks"],
-    "Software Engineering (SE)": ["Software Requirement Engineering", "Software Design", "Web Engineering"],
-    "Artificial Intelligence (AI)": ["Machine Learning", "Deep Learning", "Computer Vision"],
-    "Electrical Engineering (EE)": ["Linear Circuit Analysis", "Digital Logic Design (DLD)", "Signals & Systems", "Control Systems"],
-    "Mechanical Engineering (ME)": ["Thermodynamics", "Fluid Mechanics", "Engineering Mechanics"],
-    "BBA": ["Principles of Management", "Financial Accounting", "Marketing Management"],
-    "MBBS": ["Anatomy", "Physiology", "Biochemistry", "Pathology", "Pharmacology", "Medicine"],
-    "BDS": ["Oral Biology", "Oral Pathology", "Dental Materials"]
-  },
-  "Masters (MS/MPhil)": {
-    "Computer Science": ["Advanced Algorithms", "Advanced Operating Systems", "Research Methodology"],
-    "Electrical Engineering": ["Advanced Control Systems", "Stochastic Processes"],
-    "MBA": ["Strategic Management", "Corporate Finance"]
-  },
-  "Doctorate (PhD)": {
-    "Computer Science": ["PhD Seminar", "Independent Research"],
-    "Management": ["Advanced Research Methods", "Organizational Theory"]
-  }
-};
+import { EDUCATION_HIERARCHY } from "@/lib/educationData";
 
 export default function Subjects() {
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Cascading Selection State
   const [selectedLevel, setSelectedLevel] = useState<string>("");
@@ -60,13 +26,6 @@ export default function Subjects() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [isSellOpen, setIsSellOpen] = useState(false);
   const [sellData, setSellData] = useState({ title: "", price: "" });
-
-  const [courseData, setCourseData] = useState({
-    courseNo: "",
-    degreeName: "",
-    university: "",
-    semesterNo: ""
-  });
 
   const availableDegrees = selectedLevel ? Object.keys(EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY]) : [];
   const availableCourses = (selectedLevel && selectedDegree) ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY][selectedDegree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
@@ -80,44 +39,6 @@ export default function Subjects() {
   const handleDegreeChange = (val: string) => {
     setSelectedDegree(val);
     setSelectedCourse("");
-  };
-
-  const handleAddCourse = async () => {
-    if (!courseData.courseNo || !courseData.degreeName || !courseData.university || !courseData.semesterNo) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all the details.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      if (auth.currentUser) {
-        await addDoc(collection(db, "pending_courses"), {
-          ...courseData,
-          userId: auth.currentUser.uid,
-          status: "pending",
-          createdAt: serverTimestamp()
-        });
-      }
-      
-      toast({
-        title: "Course Submitted",
-        description: "Your course has been submitted for manager approval.",
-      });
-      setIsDialogOpen(false);
-      setCourseData({ courseNo: "", degreeName: "", university: "", semesterNo: "" });
-    } catch (error: any) {
-      toast({
-        title: "Error submitting course",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handlePurchaseNotes = () => {
@@ -157,70 +78,6 @@ export default function Subjects() {
             <p className="text-muted-foreground mt-1 text-sm">{selectedCourse ? "Resources & materials" : "Browse our course library"}</p>
           </div>
         </div>
-        {!selectedCourse && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" className="relative z-10 rounded-full h-10 w-10 shadow-lg shadow-primary/20">
-                <Plus className="w-5 h-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
-              <DialogHeader>
-                <DialogTitle>Add New Course</DialogTitle>
-                <DialogDescription>
-                  Submit a new course for manager approval. It will appear here once approved.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="courseNo" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Course No / Code</Label>
-                  <Input 
-                    id="courseNo" 
-                    placeholder="e.g. CS-101" 
-                    className="bg-muted/50 border-none h-11 rounded-xl focus-visible:ring-1 ring-primary/20"
-                    value={courseData.courseNo}
-                    onChange={(e) => setCourseData({...courseData, courseNo: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="degreeName" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Degree Name</Label>
-                  <Input 
-                    id="degreeName" 
-                    placeholder="e.g. BS Computer Science" 
-                    className="bg-muted/50 border-none h-11 rounded-xl focus-visible:ring-1 ring-primary/20"
-                    value={courseData.degreeName}
-                    onChange={(e) => setCourseData({...courseData, degreeName: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="university" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">University</Label>
-                  <Input 
-                    id="university" 
-                    placeholder="e.g. NUST" 
-                    className="bg-muted/50 border-none h-11 rounded-xl focus-visible:ring-1 ring-primary/20"
-                    value={courseData.university}
-                    onChange={(e) => setCourseData({...courseData, university: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="semesterNo" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Semester No</Label>
-                  <Input 
-                    id="semesterNo" 
-                    placeholder="e.g. 3rd Semester" 
-                    className="bg-muted/50 border-none h-11 rounded-xl focus-visible:ring-1 ring-primary/20"
-                    value={courseData.semesterNo}
-                    onChange={(e) => setCourseData({...courseData, semesterNo: e.target.value})}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddCourse} disabled={isSubmitting} className="w-full h-11 rounded-xl">
-                  {isSubmitting ? "Submitting..." : "Submit for Approval"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 relative z-10 pb-24">
@@ -376,43 +233,23 @@ export default function Subjects() {
                                 <SelectValue placeholder="Choose payment option" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="jazzcash">
-                                  <div className="flex items-center gap-2">
-                                    <Banknote className="w-4 h-4 text-orange-500" /> JazzCash
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="easypaisa">
-                                  <div className="flex items-center gap-2">
-                                    <Banknote className="w-4 h-4 text-green-500" /> EasyPaisa
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="nayapay">
-                                  <div className="flex items-center gap-2">
-                                    <Banknote className="w-4 h-4 text-teal-500" /> NayaPay
-                                  </div>
-                                </SelectItem>
                                 <SelectItem value="card">
                                   <div className="flex items-center gap-2">
-                                    <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="bank">
-                                  <div className="flex items-center gap-2">
-                                    <Landmark className="w-4 h-4 text-purple-500" /> Bank Transfer
+                                    <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card (App Pay)
                                   </div>
                                 </SelectItem>
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                              Payment is processed securely by the app. The seller will receive the amount minus a 10% platform fee in their wallet.
+                            </p>
                           </div>
 
                           {paymentMethod && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                              <Label>
-                                {paymentMethod === 'card' ? 'Card Number' : 
-                                 paymentMethod === 'bank' ? 'IBAN Number' : 'Account/Mobile Number'}
-                              </Label>
+                              <Label>Card Number</Label>
                               <Input 
-                                placeholder={paymentMethod === 'card' ? '0000 0000 0000 0000' : '03XX XXXXXXX'} 
+                                placeholder="0000 0000 0000 0000" 
                                 className="h-12 bg-muted/50 border-none rounded-xl"
                               />
                             </div>

@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User } from "lucide-react";
+import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
@@ -239,7 +239,56 @@ export default function Profile() {
            </div>
         </div>
 
-        <h3 className="font-semibold mb-4 px-1 relative z-10">Resources</h3>
+        <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Wallet</h3>
+        <div className="space-y-3 relative z-10 mb-8">
+          <Card className="border-border/50 shadow-sm overflow-hidden bg-background">
+            <CardContent className="p-0">
+              <div className="bg-primary/10 p-6 flex items-center justify-between border-b border-primary/10">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-1">Available Balance</p>
+                  <h4 className="text-3xl font-bold text-primary">Rs. 2,450</h4>
+                </div>
+                <div className="p-4 bg-primary/20 rounded-2xl text-primary shadow-inner">
+                  <Banknote className="w-8 h-8" />
+                </div>
+              </div>
+              <div className="p-5">
+                <h5 className="text-xs font-bold mb-4 uppercase tracking-widest text-muted-foreground">Recent Transactions</h5>
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-green-500/10 text-green-600 rounded-full">
+                        <ArrowDownLeft className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold leading-none mb-1">Sold: Calculus Notes</p>
+                        <p className="text-[11px] font-medium text-muted-foreground">Today, 2:30 PM</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-sm text-green-600">+ Rs. 450</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-destructive/10 text-destructive rounded-full">
+                        <ArrowUpRight className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold leading-none mb-1">Bought: Physics Past Papers</p>
+                        <p className="text-[11px] font-medium text-muted-foreground">Yesterday, 11:15 AM</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-sm text-destructive">- Rs. 200</span>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full mt-5 rounded-xl h-10 text-xs font-bold uppercase tracking-wider">
+                  View All History
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Resources</h3>
         <div className="space-y-3 relative z-10">
           <Card 
             className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
