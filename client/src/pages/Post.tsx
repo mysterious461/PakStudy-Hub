@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, FileText } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 export default function Post() {
   const [, setLocation] = useLocation();
@@ -18,7 +19,9 @@ export default function Post() {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    subject: ""
+    subject: "",
+    sellNotes: false,
+    notesPrice: ""
   });
 
   const handlePost = async () => {
@@ -131,8 +134,48 @@ export default function Post() {
             />
           </div>
 
-          <div className="pt-4 border-t border-border/50">
-            <Button variant="outline" className="w-full justify-start gap-2 h-12 text-muted-foreground border-dashed">
+          <div className="pt-4 border-t border-border/50 space-y-4">
+            <div className="flex items-center justify-between bg-background/80 backdrop-blur-sm p-4 rounded-xl border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Sell Notes</h3>
+                  <p className="text-xs text-muted-foreground">Attach study materials for sale</p>
+                </div>
+              </div>
+              <Switch 
+                checked={formData.sellNotes} 
+                onCheckedChange={(c) => setFormData({...formData, sellNotes: c})} 
+              />
+            </div>
+
+            {formData.sellNotes && (
+              <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border/50">
+                <div className="space-y-2">
+                  <Label>Price (Rs.)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="e.g. 500" 
+                    className="bg-background"
+                    value={formData.notesPrice}
+                    onChange={(e) => setFormData({...formData, notesPrice: e.target.value})}
+                  />
+                  {formData.notesPrice && (
+                    <p className="text-[10px] text-muted-foreground">
+                      You will receive Rs. {Math.round(parseInt(formData.notesPrice) * 0.9)} (10% platform fee applied)
+                    </p>
+                  )}
+                </div>
+                <Button variant="outline" className="w-full justify-start gap-2 text-muted-foreground border-dashed bg-background">
+                  <ImagePlus className="w-4 h-4" />
+                  Upload PDF / Document
+                </Button>
+              </div>
+            )}
+
+            <Button variant="outline" className="w-full justify-start gap-2 h-12 text-muted-foreground border-dashed bg-background/50">
               <ImagePlus className="w-5 h-5" />
               Add photos or screenshots
             </Button>

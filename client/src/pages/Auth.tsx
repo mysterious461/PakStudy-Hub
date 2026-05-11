@@ -94,7 +94,7 @@ export default function Auth() {
         <p className="text-muted-foreground">Sign in to continue to your account</p>
       </div>
 
-      <div className="relative z-10 flex-1">
+      <div className="relative z-10 flex-1 overflow-y-auto pb-4 scrollbar-hide">
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="w-full grid grid-cols-2 mb-8 h-12 bg-muted/50 p-1 rounded-xl">
           <TabsTrigger value="login" className="rounded-lg text-base">Login</TabsTrigger>

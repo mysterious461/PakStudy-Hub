@@ -8,6 +8,10 @@ import { doc, onSnapshot, collection, addDoc, serverTimestamp, updateDoc, increm
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText, Download, CreditCard, Banknote, Landmark } from "lucide-react";
 
 export default function QuestionDetail() {
   const [, params] = useRoute("/question/:id");
@@ -17,6 +21,22 @@ export default function QuestionDetail() {
   const [answers, setAnswers] = useState<any[]>([]);
   const [reply, setReply] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
+
+  const handlePurchaseNotes = () => {
+    toast({
+      title: "Payment Processing",
+      description: "Redirecting to payment gateway...",
+    });
+    setTimeout(() => {
+      toast({
+        title: "Purchase Successful",
+        description: "Notes have been added to your study materials.",
+      });
+      setIsPaymentOpen(false);
+    }, 2000);
+  };
 
   useEffect(() => {
     if (!params?.id) return;
@@ -158,6 +178,90 @@ export default function QuestionDetail() {
           <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap text-base font-normal">
             {question.content}
           </p>
+
+          {question.sellNotes && (
+            <div className="mt-4 p-4 rounded-2xl border border-primary/20 bg-primary/5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/20 text-primary rounded-xl">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">Attached Notes</h4>
+                  <p className="text-xs text-muted-foreground">Price: Rs. {question.notesPrice}</p>
+                </div>
+              </div>
+              <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="rounded-xl px-4 shadow-sm shadow-primary/20">
+                    <Download className="w-4 h-4 mr-2" /> Buy Notes
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
+                  <DialogHeader>
+                    <DialogTitle>Purchase Notes</DialogTitle>
+                    <DialogDescription>
+                      Buy attached notes for Rs. {question.notesPrice}. You will be able to download them immediately.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                      <Label>Select Payment Method</Label>
+                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                        <SelectTrigger className="h-12 bg-muted/50 border-none rounded-xl">
+                          <SelectValue placeholder="Choose payment option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="jazzcash">
+                            <div className="flex items-center gap-2">
+                              <Banknote className="w-4 h-4 text-orange-500" /> JazzCash
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="easypaisa">
+                            <div className="flex items-center gap-2">
+                              <Banknote className="w-4 h-4 text-green-500" /> EasyPaisa
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="nayapay">
+                            <div className="flex items-center gap-2">
+                              <Banknote className="w-4 h-4 text-teal-500" /> NayaPay
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="card">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="bank">
+                            <div className="flex items-center gap-2">
+                              <Landmark className="w-4 h-4 text-purple-500" /> Bank Transfer
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {paymentMethod && (
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <Label>
+                          {paymentMethod === 'card' ? 'Card Number' : 
+                           paymentMethod === 'bank' ? 'IBAN Number' : 'Account/Mobile Number'}
+                        </Label>
+                        <Input 
+                          placeholder={paymentMethod === 'card' ? '0000 0000 0000 0000' : '03XX XXXXXXX'} 
+                          className="h-12 bg-muted/50 border-none rounded-xl"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handlePurchaseNotes} className="w-full h-12 rounded-xl" disabled={!paymentMethod}>
+                      Pay Rs. {question.notesPrice}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
 
           <div className="flex items-center gap-6 pt-6 border-t border-border/50">
             <button 
