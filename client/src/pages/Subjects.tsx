@@ -24,8 +24,6 @@ export default function Subjects() {
   // Payment/Sell Notes Dialogs
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
-  const [isSellOpen, setIsSellOpen] = useState(false);
-  const [sellData, setSellData] = useState({ title: "", price: "" });
 
   const availableDegrees = selectedLevel ? Object.keys(EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY]) : [];
   const availableCourses = (selectedLevel && selectedDegree) ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY][selectedDegree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
@@ -47,12 +45,6 @@ export default function Subjects() {
       toast({ title: "Purchase Successful", description: "Notes have been added to your study materials." });
       setIsPaymentOpen(false);
     }, 2000);
-  };
-
-  const handleSellNotes = () => {
-    toast({ title: "Notes Uploaded", description: "Your notes have been listed for sale!" });
-    setIsSellOpen(false);
-    setSellData({ title: "", price: "" });
   };
 
   return (
@@ -136,56 +128,6 @@ export default function Subjects() {
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Available Notes</h2>
-              <Dialog open={isSellOpen} onOpenChange={setIsSellOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="rounded-xl px-4 shadow-sm">
-                    <Plus className="w-4 h-4 mr-2" /> Sell Notes
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
-                  <DialogHeader>
-                    <DialogTitle>Sell Your Notes</DialogTitle>
-                    <DialogDescription>
-                      Upload your study materials and set a price. The platform charges a 10% fee on all sales.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                      <Label>Notes Title</Label>
-                      <Input 
-                        placeholder="e.g. Midterm Preparation Guide" 
-                        value={sellData.title}
-                        onChange={(e) => setSellData({...sellData, title: e.target.value})}
-                        className="h-12 bg-muted/50 border-none rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Price (Rs.)</Label>
-                      <Input 
-                        type="number" 
-                        placeholder="e.g. 500" 
-                        value={sellData.price}
-                        onChange={(e) => setSellData({...sellData, price: e.target.value})}
-                        className="h-12 bg-muted/50 border-none rounded-xl"
-                      />
-                      {sellData.price && (
-                        <p className="text-xs text-muted-foreground mt-1 font-medium">
-                          You will receive Rs. {Math.round(parseInt(sellData.price) * 0.9)}
-                        </p>
-                      )}
-                    </div>
-                    <Button variant="outline" className="w-full justify-start gap-2 h-14 text-muted-foreground border-dashed bg-muted/30 rounded-xl">
-                      <FileText className="w-5 h-5" />
-                      Upload PDF/Doc File
-                    </Button>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleSellNotes} className="w-full h-12 rounded-xl" disabled={!sellData.title || !sellData.price}>
-                      List for Sale
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </div>
 
             {/* Mocked Notes Cards */}

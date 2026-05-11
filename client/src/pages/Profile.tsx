@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight, CreditCard, Plus } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
@@ -31,6 +32,9 @@ export default function Profile() {
   });
 
   const [stats, setStats] = useState({ questions: 0, answers: 0, reputation: 0 });
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpCard, setTopUpCard] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -97,6 +101,16 @@ export default function Profile() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleTopUp = () => {
+    toast({ title: "Processing Top Up", description: "Securely adding funds via App Pay..." });
+    setTimeout(() => {
+      toast({ title: "Top Up Successful", description: `Rs. ${topUpAmount} added to your wallet.` });
+      setIsTopUpOpen(false);
+      setTopUpAmount("");
+      setTopUpCard("");
+    }, 2000);
   };
 
   return (
@@ -243,14 +257,66 @@ export default function Profile() {
         <div className="space-y-3 relative z-10 mb-8">
           <Card className="border-border/50 shadow-sm overflow-hidden bg-background">
             <CardContent className="p-0">
-              <div className="bg-primary/10 p-6 flex items-center justify-between border-b border-primary/10">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-1">Available Balance</p>
-                  <h4 className="text-3xl font-bold text-primary">Rs. 2,450</h4>
+              <div className="bg-primary/10 p-6 flex flex-col justify-between border-b border-primary/10 gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-1">Available Balance</p>
+                    <h4 className="text-3xl font-bold text-primary">Rs. 2,450</h4>
+                  </div>
+                  <div className="p-4 bg-primary/20 rounded-2xl text-primary shadow-inner">
+                    <Banknote className="w-8 h-8" />
+                  </div>
                 </div>
-                <div className="p-4 bg-primary/20 rounded-2xl text-primary shadow-inner">
-                  <Banknote className="w-8 h-8" />
-                </div>
+                
+                <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="default" className="w-full rounded-xl mt-2 font-semibold">
+                      <Plus className="w-4 h-4 mr-2" /> Top Up Wallet
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
+                    <DialogHeader>
+                      <DialogTitle>Top Up Wallet</DialogTitle>
+                      <DialogDescription>
+                        Add funds to your wallet using your Credit or Debit Card via App Pay.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label>Amount to add (Rs.)</Label>
+                        <Input 
+                          type="number"
+                          placeholder="e.g. 1000" 
+                          value={topUpAmount}
+                          onChange={(e) => setTopUpAmount(e.target.value)}
+                          className="h-12 bg-muted/50 border-none rounded-xl text-lg font-medium"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Select Payment Method</Label>
+                        <div className="h-12 bg-muted/50 border-none rounded-xl flex items-center px-3 opacity-70">
+                           <div className="flex items-center gap-2">
+                             <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card (App Pay)
+                           </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <Label>Card Number</Label>
+                        <Input 
+                          placeholder="0000 0000 0000 0000" 
+                          value={topUpCard}
+                          onChange={(e) => setTopUpCard(e.target.value)}
+                          className="h-12 bg-muted/50 border-none rounded-xl"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleTopUp} className="w-full h-12 rounded-xl" disabled={!topUpAmount || !topUpCard}>
+                        {topUpAmount ? `Pay Rs. ${topUpAmount}` : "Enter Amount"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
               <div className="p-5">
                 <h5 className="text-xs font-bold mb-4 uppercase tracking-widest text-muted-foreground">Recent Transactions</h5>

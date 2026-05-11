@@ -11,6 +11,7 @@ import Subjects from "@/pages/Subjects";
 import Post from "@/pages/Post";
 import Profile from "@/pages/Profile";
 import QuestionDetail from "@/pages/QuestionDetail";
+import Sell from "@/pages/Sell";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
         <Route path="/home" component={Home} />
         <Route path="/subjects" component={Subjects} />
         <Route path="/post" component={Post} />
+        <Route path="/sell" component={Sell} />
         <Route path="/profile" component={Profile} />
         <Route path="/question/:id" component={QuestionDetail} />
         <Route component={NotFound} />
