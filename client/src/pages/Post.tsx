@@ -22,6 +22,15 @@ export default function Post() {
   });
 
   const handlePost = async () => {
+    if (!auth.currentUser) {
+      toast({
+        title: "Guest Mode",
+        description: "Please log in to post questions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!formData.title || !formData.content || !formData.subject) {
       toast({
         title: "Missing Fields",
@@ -130,6 +139,8 @@ export default function Post() {
           </div>
         </div>
       </div>
+      
+      <BottomNav />
     </div>
   );
 }

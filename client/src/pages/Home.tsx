@@ -6,8 +6,9 @@ import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal } from "lucide-rea
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English", "Urdu"];
@@ -17,6 +18,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     const q = query(collection(db, "questions"), orderBy("createdAt", "desc"));
@@ -34,6 +36,15 @@ export default function Home() {
 
   const handleUpvote = async (e: React.MouseEvent, postId: string) => {
     e.stopPropagation();
+    if (!auth.currentUser) {
+      toast({
+        title: "Guest Mode",
+        description: "Please log in to upvote questions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const postRef = doc(db, "questions", postId);
       await updateDoc(postRef, {

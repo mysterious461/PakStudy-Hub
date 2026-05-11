@@ -7,19 +7,70 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
-const subjects = [
-  { name: "Mathematics", icon: Calculator, color: "bg-blue-100 text-blue-600" },
-  { name: "Physics", icon: FlaskConical, color: "bg-purple-100 text-purple-600" },
-  { name: "Chemistry", icon: FlaskConical, color: "bg-green-100 text-green-600" },
-  { name: "Computer Science", icon: Laptop, color: "bg-orange-100 text-orange-600" },
-  { name: "English", icon: Languages, color: "bg-pink-100 text-pink-600" },
-  { name: "Urdu", icon: Languages, color: "bg-emerald-100 text-emerald-600" },
-  { name: "Pak Studies", icon: Globe, color: "bg-teal-100 text-teal-600" },
-  { name: "Islamiyat", icon: BookOpen, color: "bg-indigo-100 text-indigo-600" },
+const degreePrograms = [
+  {
+    degree: "Matriculation / O-Levels",
+    courses: [
+      { name: "Mathematics", icon: Calculator, color: "bg-blue-100 text-blue-600" },
+      { name: "Physics", icon: FlaskConical, color: "bg-purple-100 text-purple-600" },
+      { name: "Chemistry", icon: FlaskConical, color: "bg-green-100 text-green-600" },
+      { name: "Computer Science", icon: Laptop, color: "bg-orange-100 text-orange-600" },
+      { name: "English", icon: Languages, color: "bg-pink-100 text-pink-600" },
+      { name: "Urdu", icon: Languages, color: "bg-emerald-100 text-emerald-600" },
+      { name: "Pak Studies", icon: Globe, color: "bg-teal-100 text-teal-600" },
+      { name: "Islamiyat", icon: BookOpen, color: "bg-indigo-100 text-indigo-600" },
+    ]
+  },
+  {
+    degree: "Intermediate / A-Levels (FSc/ICS)",
+    courses: [
+      { name: "Mathematics", icon: Calculator, color: "bg-blue-100 text-blue-600" },
+      { name: "Physics", icon: FlaskConical, color: "bg-purple-100 text-purple-600" },
+      { name: "Chemistry", icon: FlaskConical, color: "bg-green-100 text-green-600" },
+      { name: "Computer Science", icon: Laptop, color: "bg-orange-100 text-orange-600" },
+      { name: "Biology", icon: FlaskConical, color: "bg-rose-100 text-rose-600" },
+      { name: "English", icon: Languages, color: "bg-pink-100 text-pink-600" },
+    ]
+  },
+  {
+    degree: "BS Computer Science / SE",
+    courses: [
+      { name: "Programming Fundamentals", icon: Laptop, color: "bg-orange-100 text-orange-600" },
+      { name: "Object Oriented Programming", icon: Laptop, color: "bg-orange-100 text-orange-600" },
+      { name: "Data Structures & Algorithms", icon: Laptop, color: "bg-blue-100 text-blue-600" },
+      { name: "Database Systems", icon: Laptop, color: "bg-purple-100 text-purple-600" },
+      { name: "Artificial Intelligence", icon: Laptop, color: "bg-green-100 text-green-600" },
+      { name: "Operating Systems", icon: Laptop, color: "bg-pink-100 text-pink-600" },
+      { name: "Computer Networks", icon: Laptop, color: "bg-teal-100 text-teal-600" },
+    ]
+  },
+  {
+    degree: "BS Electrical Engineering",
+    courses: [
+      { name: "Linear Circuit Analysis", icon: Calculator, color: "bg-blue-100 text-blue-600" },
+      { name: "Digital Logic Design (DLD)", icon: Laptop, color: "bg-purple-100 text-purple-600" },
+      { name: "Electronic Devices & Circuits", icon: FlaskConical, color: "bg-green-100 text-green-600" },
+      { name: "Signals & Systems", icon: Calculator, color: "bg-orange-100 text-orange-600" },
+      { name: "Microprocessor Systems", icon: Laptop, color: "bg-pink-100 text-pink-600" },
+      { name: "Control Systems", icon: Calculator, color: "bg-teal-100 text-teal-600" },
+    ]
+  },
+  {
+    degree: "MBBS / BDS (Medical)",
+    courses: [
+      { name: "Anatomy", icon: FlaskConical, color: "bg-rose-100 text-rose-600" },
+      { name: "Physiology", icon: FlaskConical, color: "bg-blue-100 text-blue-600" },
+      { name: "Biochemistry", icon: FlaskConical, color: "bg-green-100 text-green-600" },
+      { name: "Pharmacology", icon: FlaskConical, color: "bg-purple-100 text-purple-600" },
+      { name: "Pathology", icon: FlaskConical, color: "bg-orange-100 text-orange-600" },
+      { name: "Medicine", icon: FlaskConical, color: "bg-teal-100 text-teal-600" },
+    ]
+  }
 ];
 
 export default function Subjects() {
@@ -152,21 +203,32 @@ export default function Subjects() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 relative z-10">
-        <div className="grid grid-cols-2 gap-4">
-          {subjects.map((subject) => (
-            <Card key={subject.name} className="hover:shadow-md transition-shadow cursor-pointer border-border/50">
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <div className={`p-4 rounded-full ${subject.color}`}>
-                  <subject.icon className="w-8 h-8" />
+        <Accordion type="single" collapsible defaultValue={degreePrograms[0].degree} className="space-y-4">
+          {degreePrograms.map((program) => (
+            <AccordionItem key={program.degree} value={program.degree} className="border border-border/50 bg-background/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm">
+              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30">
+                <span className="font-semibold text-left">{program.degree}</span>
+              </AccordionTrigger>
+              <AccordionContent className="px-5 pb-5">
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  {program.courses.map((course) => (
+                    <Card key={course.name} className="hover:shadow-md transition-shadow cursor-pointer border-border/50">
+                      <CardContent className="flex flex-col items-center justify-center p-4 text-center space-y-3">
+                        <div className={`p-3 rounded-full ${course.color}`}>
+                          <course.icon className="w-6 h-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="font-medium text-sm line-clamp-2">{course.name}</h3>
+                          <Badge variant="secondary" className="text-[9px]">120+ Resources</Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                <div className="space-y-1">
-                  <h3 className="font-semibold">{subject.name}</h3>
-                  <Badge variant="secondary" className="text-[10px]">120+ Resources</Badge>
-                </div>
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       </div>
 
       <BottomNav />

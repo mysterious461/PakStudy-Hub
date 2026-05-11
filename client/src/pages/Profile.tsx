@@ -241,7 +241,10 @@ export default function Profile() {
 
         <h3 className="font-semibold mb-4 px-1 relative z-10">Resources</h3>
         <div className="space-y-3 relative z-10">
-          <Card className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]">
+          <Card 
+            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
+            onClick={() => toast({ title: "Coming Soon", description: "Study materials will be available in the next update." })}
+          >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
                 <BookOpen className="w-5 h-5" />
@@ -252,7 +255,10 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]">
+          <Card 
+            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
+            onClick={() => toast({ title: "Coming Soon", description: "Achievements will be available in the next update." })}
+          >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
                 <Award className="w-5 h-5" />
@@ -263,7 +269,10 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]">
+          <Card 
+            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
+            onClick={() => toast({ title: "Coming Soon", description: "Settings will be available in the next update." })}
+          >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
                 <Settings className="w-5 h-5" />
