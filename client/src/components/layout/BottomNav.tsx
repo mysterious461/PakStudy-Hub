@@ -14,8 +14,8 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-background/80 backdrop-blur-lg pb-safe z-50 w-full overflow-hidden">
-      <nav className="flex items-center justify-between h-16 w-full px-2 max-w-md mx-auto">
+    <div className="border-t border-border bg-background pb-safe w-full">
+      <nav className="flex items-center justify-between h-16 w-full px-2">
         {navItems.map((item) => {
           const isActive = location === item.path;
           return (

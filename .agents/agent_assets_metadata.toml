@@ -1,0 +1,26 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "gjTknrYQA13uwki2GjUfg"
+uri = "file://client/src/assets/images/header-bg.jpg"
+type = "image"
+title = "abstract modern education green background, subtle patterns"
+
+[[outputs]]
+id = "bNyWfltYyjM64jrjb8u-v"
+uri = "file://client/src/assets/images/auth-bg.jpg"
+type = "image"
+title = "modern university campus library blurred background"
+
+[[outputs]]
+id = "HUfqxXmYi89H89FrLF7yp"
+uri = "file://client/src/assets/images/subjects-bg.jpg"
+type = "image"
+title = "abstract modern education geometric shapes green theme"
+
+[[outputs]]
+id = "_V6213MvinnuLeuSjptdK"
+uri = "file://client/src/assets/images/post-bg.jpg"
+type = "image"
+title = "modern student studying at desk blurred background"

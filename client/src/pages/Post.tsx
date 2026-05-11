@@ -59,9 +59,18 @@ export default function Post() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-muted/10 relative">
-      <header className="px-6 py-4 bg-background sticky top-0 z-10 border-b border-border/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <img src="/src/assets/images/post-bg.jpg" alt="Background" className="w-full h-full object-cover opacity-10" />
+        <div className="absolute inset-0 bg-background/95 backdrop-blur-[1px]" />
+      </div>
+
+      <header className="px-6 py-4 sticky top-0 z-10 border-b border-border/50 flex items-center justify-between relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
+        </div>
+        <div className="relative z-10 flex items-center gap-2">
            <Button variant="ghost" size="icon" className="-ml-2" onClick={() => setLocation("/home")}>
              <X className="w-6 h-6" />
            </Button>
@@ -69,7 +78,7 @@ export default function Post() {
         </div>
         <Button 
           size="sm" 
-          className="rounded-full px-6" 
+          className="rounded-full px-6 relative z-10" 
           onClick={handlePost}
           disabled={isLoading}
         >
@@ -77,12 +86,12 @@ export default function Post() {
         </Button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-24 bg-background">
+      <div className="flex-1 overflow-y-auto p-6 relative z-10">
         <div className="space-y-6">
           <div className="space-y-2">
             <Label>Subject</Label>
             <Select onValueChange={(v) => setFormData({...formData, subject: v})}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background/80 backdrop-blur-sm border-border/50 h-12 rounded-xl">
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
               <SelectContent>
@@ -98,7 +107,7 @@ export default function Post() {
             <Label>Title</Label>
             <Input 
               placeholder="What's your question about?" 
-              className="font-medium text-lg border-none px-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/50" 
+              className="font-medium text-lg border-none px-4 h-14 bg-background/80 backdrop-blur-sm rounded-xl focus-visible:ring-1 ring-primary/20 placeholder:text-muted-foreground/50" 
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
             />
@@ -107,7 +116,7 @@ export default function Post() {
           <div className="space-y-2">
             <Textarea 
               placeholder="Describe your question in detail..." 
-              className="min-h-[200px] border-none px-0 shadow-none focus-visible:ring-0 resize-none text-base" 
+              className="min-h-[200px] border-none p-4 bg-background/80 backdrop-blur-sm rounded-xl focus-visible:ring-1 ring-primary/20 resize-none text-base" 
               value={formData.content}
               onChange={(e) => setFormData({...formData, content: e.target.value})}
             />
@@ -121,8 +130,6 @@ export default function Post() {
           </div>
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

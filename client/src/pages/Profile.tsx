@@ -101,7 +101,10 @@ export default function Profile() {
 
   return (
     <div className="h-full flex flex-col bg-muted/10 relative">
-      <div className="bg-primary h-32 w-full absolute top-0 left-0 z-0" />
+      <div className="h-32 w-full absolute top-0 left-0 z-0 overflow-hidden">
+        <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-primary/80 mix-blend-multiply" />
+      </div>
       
       <div className="flex-1 overflow-y-auto pb-24 z-10 px-6 pt-16">
         <div className="bg-background rounded-3xl shadow-sm p-6 mb-6 border border-border/50 relative overflow-hidden">
@@ -155,12 +158,17 @@ export default function Profile() {
                          <SelectValue />
                        </SelectTrigger>
                        <SelectContent>
-                         <SelectItem value="Matric">Matric</SelectItem>
-                         <SelectItem value="Intermediate Pre-Engineering">Intermediate Pre-Engineering</SelectItem>
-                         <SelectItem value="Intermediate Pre-Medical">Intermediate Pre-Medical</SelectItem>
-                         <SelectItem value="University (BS)">University (BS)</SelectItem>
-                         <SelectItem value="University (MS/MPhil)">University (MS/MPhil)</SelectItem>
-                         <SelectItem value="University (PhD)">University (PhD)</SelectItem>
+                         <SelectItem value="Middle (8th)">Middle (8th)</SelectItem>
+                         <SelectItem value="Matriculation (Science)">Matriculation (Science)</SelectItem>
+                         <SelectItem value="Matriculation (Arts)">Matriculation (Arts)</SelectItem>
+                         <SelectItem value="Intermediate (Pre-Engineering)">Intermediate (Pre-Engineering)</SelectItem>
+                         <SelectItem value="Intermediate (Pre-Medical)">Intermediate (Pre-Medical)</SelectItem>
+                         <SelectItem value="Intermediate (ICS)">Intermediate (ICS)</SelectItem>
+                         <SelectItem value="Intermediate (I.Com)">Intermediate (I.Com)</SelectItem>
+                         <SelectItem value="Intermediate (FA)">Intermediate (FA)</SelectItem>
+                         <SelectItem value="Bachelors (BS/BSc/BA)">Bachelors (BS/BSc/BA)</SelectItem>
+                         <SelectItem value="Masters (MS/MPhil)">Masters (MS/MPhil)</SelectItem>
+                         <SelectItem value="Doctorate (PhD)">Doctorate (PhD)</SelectItem>
                        </SelectContent>
                      </Select>
                    </div>
@@ -231,8 +239,8 @@ export default function Profile() {
            </div>
         </div>
 
-        <h3 className="font-semibold mb-4 px-1">Resources</h3>
-        <div className="space-y-3">
+        <h3 className="font-semibold mb-4 px-1 relative z-10">Resources</h3>
+        <div className="space-y-3 relative z-10">
           <Card className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]">
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
@@ -275,9 +283,8 @@ export default function Profile() {
             Sign Out
           </Button>
         </div>
+        <div className="h-10" />
       </div>
-
-      <BottomNav />
     </div>
   );
 }

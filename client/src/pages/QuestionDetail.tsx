@@ -230,14 +230,15 @@ export default function QuestionDetail() {
         </div>
       </div>
 
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/90 backdrop-blur-md border-t border-border/50 z-20">
+      <div className="shrink-0 p-4 bg-background border-t border-border/50">
         <form onSubmit={handleSubmitReply} className="flex gap-3 max-w-4xl mx-auto items-center">
           <div className="relative flex-1 group">
             <Input 
-              placeholder="Provide an answer..." 
+              placeholder={auth.currentUser ? "Provide an answer..." : "Sign in to answer"} 
               className="rounded-2xl bg-muted/30 border-none h-12 pl-4 pr-12 text-sm focus-visible:ring-1 focus-visible:ring-primary/20 transition-all" 
               value={reply}
               onChange={(e) => setReply(e.target.value)}
+              disabled={!auth.currentUser}
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
               <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-tighter">Enter to send</span>
@@ -247,14 +248,12 @@ export default function QuestionDetail() {
             type="submit" 
             size="icon" 
             className="rounded-2xl h-12 w-12 shrink-0 shadow-lg shadow-primary/10 transition-transform active:scale-95" 
-            disabled={isSubmitting || !reply.trim()}
+            disabled={isSubmitting || !reply.trim() || !auth.currentUser}
           >
             <Send className="w-5 h-5" />
           </Button>
         </form>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

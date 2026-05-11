@@ -51,8 +51,12 @@ export default function Home() {
   return (
     <div className="h-full flex flex-col bg-muted/10 relative">
       {/* Header */}
-      <header className="px-6 py-4 bg-background sticky top-0 z-10 border-b border-border/50">
-        <div className="flex items-center justify-between mb-4">
+      <header className="px-6 py-4 sticky top-0 z-10 border-b border-border/50 relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
+        </div>
+        <div className="relative z-10 flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <img src={logoImage} alt="Logo" className="w-8 h-8" />
             <h1 className="text-xl font-bold tracking-tight text-primary">PakStudy</h1>
@@ -91,7 +95,7 @@ export default function Home() {
       </div>
 
       {/* Feed */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground">Loading questions...</div>
         ) : filteredPosts.length === 0 ? (
@@ -155,10 +159,8 @@ export default function Home() {
           ))
         )}
         
-        <div className="h-4" /> {/* Spacer for bottom nav */}
+        <div className="h-4" /> {/* Spacer */}
       </div>
-
-      <BottomNav />
     </div>
   );
 }
