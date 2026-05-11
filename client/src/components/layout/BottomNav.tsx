@@ -15,7 +15,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="border-t border-border bg-background pb-safe w-full">
+    <div className="border-t border-border bg-background pb-safe w-full relative z-50">
       <nav className="flex items-center justify-between h-16 w-full px-2">
         {navItems.map((item) => {
           const isActive = location === item.path;

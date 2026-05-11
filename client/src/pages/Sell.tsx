@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, ArrowLeft, UploadCloud } from "lucide-react";
+import { FileText, ArrowLeft, UploadCloud, X } from "lucide-react";
 import { EDUCATION_HIERARCHY } from "@/lib/educationData";
+import { useLocation } from "wouter";
 
 export default function Sell() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   // Cascading Selection State
   const [selectedLevel, setSelectedLevel] = useState<string>("");
@@ -53,11 +55,16 @@ export default function Sell() {
           <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover opacity-30" />
           <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
         </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Sell Notes</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Upload study materials and earn</p>
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Sell Notes</h1>
+              <p className="text-muted-foreground mt-1 text-sm">Upload study materials and earn</p>
+            </div>
           </div>
+          <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted/80 shrink-0" onClick={() => setLocation("/home")}>
+            <X className="w-5 h-5" />
+          </Button>
         </div>
       </header>
 
