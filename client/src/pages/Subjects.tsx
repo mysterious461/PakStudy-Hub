@@ -34,14 +34,18 @@ export default function Subjects() {
   const availableCourses = (selectedLevel && selectedDegree) ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY][selectedDegree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
 
   const handleLevelChange = (val: string) => {
-    setSelectedLevel(val);
+    setSelectedLevel(val === "all" ? "" : val);
     setSelectedDegree("");
     setSelectedCourse("");
   };
 
   const handleDegreeChange = (val: string) => {
-    setSelectedDegree(val);
+    setSelectedDegree(val === "all" ? "" : val);
     setSelectedCourse("");
+  };
+
+  const handleCourseChange = (val: string) => {
+    setSelectedCourse(val === "all" ? "" : val);
   };
 
   const handlePurchaseNotes = () => {
@@ -65,14 +69,9 @@ export default function Subjects() {
           <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
         </div>
         <div className="relative z-10 flex items-center gap-3">
-          {selectedCourse && (
-             <Button variant="ghost" size="icon" className="-ml-2" onClick={() => setSelectedCourse("")}>
-               <ArrowLeft className="w-6 h-6" />
-             </Button>
-          )}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{selectedCourse ? selectedCourse : "Buy Notes"}</h1>
-            <p className="text-muted-foreground mt-1 text-sm">{selectedCourse ? "Resources & materials" : "Purchase study materials from peers"}</p>
+            <h1 className="text-2xl font-bold tracking-tight">Buy Notes</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Purchase study materials from peers</p>
           </div>
         </div>
         <div className="relative z-10 flex items-center gap-2">
@@ -86,109 +85,105 @@ export default function Subjects() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 relative z-10 pb-24">
-        {!selectedCourse ? (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">1. Choose Education Level</Label>
-              <Select value={selectedLevel} onValueChange={handleLevelChange}>
-                <SelectTrigger className="w-full h-14 bg-background/80 backdrop-blur-sm border-border/50 rounded-2xl shadow-sm text-base">
-                  <SelectValue placeholder="Select Level" />
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search notes..." 
+                className="pl-9 h-10 rounded-xl bg-background/80 backdrop-blur-sm border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[110px] h-10 text-xs rounded-xl bg-background border-border/50">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="popular">Top Rated</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="price-low">Price: Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Inline filters */}
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 scrollbar-none">
+             <Select value={selectedLevel || "all"} onValueChange={handleLevelChange}>
+                <SelectTrigger className="min-w-[140px] h-9 text-xs rounded-full bg-background border-border/50 shadow-sm whitespace-nowrap">
+                  <SelectValue placeholder="Education Level" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Levels</SelectItem>
                   {Object.keys(EDUCATION_HIERARCHY).map(level => (
                     <SelectItem key={level} value={level}>{level}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {selectedLevel && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">2. Choose Degree / Program</Label>
-                <Select value={selectedDegree} onValueChange={handleDegreeChange}>
-                  <SelectTrigger className="w-full h-14 bg-background/80 backdrop-blur-sm border-border/50 rounded-2xl shadow-sm text-base">
-                    <SelectValue placeholder="Select Degree" />
+              
+              {selectedLevel && (
+                <Select value={selectedDegree || "all"} onValueChange={handleDegreeChange}>
+                  <SelectTrigger className="min-w-[140px] h-9 text-xs rounded-full bg-background border-border/50 shadow-sm whitespace-nowrap">
+                    <SelectValue placeholder="Degree/Program" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All Degrees</SelectItem>
                     {availableDegrees.map(degree => (
                       <SelectItem key={degree} value={degree}>{degree}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              )}
 
-            {selectedLevel && selectedDegree && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">3. Select Course to View Notes</Label>
-                <div className="grid grid-cols-1 gap-3">
-                {availableCourses.map((course: string) => (
-                  <Button 
-                    key={course} 
-                    variant="outline" 
-                    className="w-full justify-between h-14 bg-background/60 backdrop-blur-sm border-border/50 rounded-2xl hover:bg-primary/5 hover:border-primary/30 transition-all font-medium text-base shadow-sm"
-                    onClick={() => setSelectedCourse(course)}
-                  >
-                    {course}
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  </Button>
-                ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">Available Notes</h2>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[140px] h-9 text-xs rounded-xl bg-background border-border/50">
-                    <SelectValue placeholder="Sort by" />
+              {selectedLevel && selectedDegree && (
+                <Select value={selectedCourse || "all"} onValueChange={handleCourseChange}>
+                  <SelectTrigger className="min-w-[140px] h-9 text-xs rounded-full bg-background border-border/50 shadow-sm whitespace-nowrap">
+                    <SelectValue placeholder="Course/Subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="popular">Top Rated</SelectItem>
-                    <SelectItem value="newest">Newest</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="all">All Courses</SelectItem>
+                    {availableCourses.map((course: string) => (
+                      <SelectItem key={course} value={course}>{course}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search in this course..." 
-                  className="pl-9 h-10 rounded-xl bg-background/80 backdrop-blur-sm border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
+              )}
+          </div>
+        </div>
 
-            {/* Mocked Notes Cards */}
-            <div className="space-y-4">
-              {[
-                { title: "Midterm Crash Course PDF", author: "Ali Khan", price: "500", rating: "4.8" },
-                { title: "Complete Handwritten Notes", author: "Sara Ahmed", price: "800", rating: "4.9" },
-                { title: "Past Papers Solved (2018-2023)", author: "Hamza Malik", price: "400", rating: "4.5" },
-              ]
-              .filter(note => note.title.toLowerCase().includes(searchQuery.toLowerCase()))
-              .map((note, i) => (
-                <Card key={i} className="border-border/50 bg-background/80 backdrop-blur-sm shadow-sm rounded-2xl overflow-hidden hover:border-primary/20 transition-all">
-                  <CardContent className="p-5 flex flex-col gap-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-primary/10 text-primary rounded-xl shrink-0">
-                          <FileText className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold leading-tight line-clamp-2">{note.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-1">By {note.author} • ⭐ {note.rating}</p>
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <span className="font-bold text-lg text-primary">Rs. {note.price}</span>
-                      </div>
+        {/* Mocked Notes Cards */}
+        <div className="space-y-4">
+          {[
+            { title: "Midterm Crash Course PDF", author: "Ali Khan", price: "500", rating: "4.8", course: "Computer Science" },
+            { title: "Complete Handwritten Notes", author: "Sara Ahmed", price: "800", rating: "4.9", course: "Physics" },
+            { title: "Past Papers Solved (2018-2023)", author: "Hamza Malik", price: "400", rating: "4.5", course: "Mathematics" },
+            { title: "English Grammar Rules & Essays", author: "Zainab B.", price: "300", rating: "4.7", course: "English" },
+            { title: "Chemistry Organic Reactions", author: "Umer T.", price: "600", rating: "4.6", course: "Chemistry" },
+            { title: "Urdu Literature Summary", author: "Aisha F.", price: "250", rating: "4.4", course: "Urdu" },
+          ]
+          .filter(note => note.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter(note => selectedCourse ? note.course === selectedCourse : true)
+          .map((note, i) => (
+            <Card key={i} className="border-border/50 bg-background/80 backdrop-blur-sm shadow-sm rounded-2xl overflow-hidden hover:border-primary/20 transition-all">
+              <CardContent className="p-5 flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-primary/10 text-primary rounded-xl shrink-0">
+                      <FileText className="w-6 h-6" />
                     </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold leading-tight line-clamp-2">{note.title}</h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground">By {note.author} • ⭐ {note.rating}</p>
+                      <Badge variant="secondary" className="mt-2 text-[9px] uppercase tracking-wider px-2 py-0.5">{note.course}</Badge>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className="font-bold text-lg text-primary">Rs. {note.price}</span>
+                  </div>
+                </div>
                     
                     <div className="flex gap-2">
                       <Dialog>
