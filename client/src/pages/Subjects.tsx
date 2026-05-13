@@ -295,8 +295,6 @@ export default function Subjects() {
                 </Card>
               ))}
             </div>
-          </div>
-        )}
       </div>
     </div>
   );
