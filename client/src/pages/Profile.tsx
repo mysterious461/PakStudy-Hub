@@ -380,7 +380,7 @@ export default function Profile() {
         <div className="space-y-3 relative z-10">
           <Card 
             className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={() => toast({ title: "Coming Soon", description: "Study materials will be available in the next update." })}
+            onClick={() => setLocation("/library")}
           >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">

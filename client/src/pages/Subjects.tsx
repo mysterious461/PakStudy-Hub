@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BottomNav } from "@/components/layout/BottomNav";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus, ChevronRight, FileText, Download, Banknote, CreditCard, Landmark, ArrowLeft } from "lucide-react";
+import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus, ChevronRight, FileText, Download, Banknote, CreditCard, Landmark, ArrowLeft, X, ShoppingBag } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { EDUCATION_HIERARCHY } from "@/lib/educationData";
 
 export default function Subjects() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   // Cascading Selection State
@@ -69,6 +70,14 @@ export default function Subjects() {
             <h1 className="text-2xl font-bold tracking-tight">{selectedCourse ? selectedCourse : "Buy Notes"}</h1>
             <p className="text-muted-foreground mt-1 text-sm">{selectedCourse ? "Resources & materials" : "Purchase study materials from peers"}</p>
           </div>
+        </div>
+        <div className="relative z-10 flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="rounded-full bg-primary/10 text-primary hover:bg-primary/20" onClick={() => setLocation("/library")}>
+            <ShoppingBag className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-full bg-muted/50 hover:bg-muted" onClick={() => setLocation("/home")}>
+            <X className="w-5 h-5" />
+          </Button>
         </div>
       </header>
 
@@ -211,8 +220,6 @@ export default function Subjects() {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }
