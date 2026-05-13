@@ -11,7 +11,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FileText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English", "Urdu"];
@@ -20,6 +20,7 @@ export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -83,9 +84,11 @@ export default function Home() {
     }
   };
 
-  const filteredPosts = selectedCategory === "All" 
-    ? posts 
-    : posts.filter(post => post.subject === selectedCategory || (selectedCategory === "Computer" && post.subject === "Computer Science"));
+  const filteredPosts = posts.filter(post => {
+    const matchesCategory = selectedCategory === "All" || post.subject === selectedCategory || (selectedCategory === "Computer" && post.subject === "Computer Science");
+    const matchesSearch = post.title?.toLowerCase().includes(searchQuery.toLowerCase()) || post.content?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="h-full flex flex-col bg-muted/10 relative">
@@ -143,6 +146,8 @@ export default function Home() {
           <Input 
             placeholder="Search questions, topics..." 
             className="pl-9 h-10 rounded-xl bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </header>
@@ -168,13 +173,38 @@ export default function Home() {
       {/* Feed */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-32 text-muted-foreground">Loading questions...</div>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-card p-4 rounded-2xl border border-border/50 space-y-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+                <div className="pt-3 flex gap-3 border-t border-border/30">
+                  <Skeleton className="h-8 w-16 rounded-lg" />
+                  <Skeleton className="h-8 w-16 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filteredPosts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-            <p>No questions found for {selectedCategory}.</p>
-            {selectedCategory !== "All" && (
-              <Button variant="link" onClick={() => setSelectedCategory("All")} className="text-primary">View all questions</Button>
-            )}
+          <div className="flex flex-col items-center justify-center h-64 text-center px-4 animate-in fade-in duration-500">
+            <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mb-4">
+              <Search className="w-10 h-10 text-primary/40" />
+            </div>
+            <h3 className="font-bold text-lg mb-2 text-foreground/80">No questions found</h3>
+            <p className="text-muted-foreground text-sm max-w-[250px] mb-6">
+              {searchQuery ? "We couldn't find anything matching your search. Try different keywords." : `There are no questions in ${selectedCategory} yet. Be the first to ask!`}
+            </p>
+            <Button className="rounded-xl shadow-md" onClick={() => setLocation("/post")}>Ask a Question</Button>
           </div>
         ) : (
           filteredPosts.map((post) => (

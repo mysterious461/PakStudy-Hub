@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, BookOpen, Download, FileText, ShoppingBag } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, FileText, ShoppingBag, SearchX } from "lucide-react";
 
 export default function Library() {
   const [, setLocation] = useLocation();
@@ -24,55 +24,28 @@ export default function Library() {
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Bought Notes</h2>
             </div>
             
-            <div className="space-y-4">
-              {[
-                { title: "Calculus Final Review PDF", author: "Ahmed", date: "Oct 12, 2023", size: "2.4 MB" },
-                { title: "Physics Past Papers 2022", author: "Sara", date: "Oct 10, 2023", size: "5.1 MB" },
-              ].map((note, i) => (
-                <Card key={i} className="border-border/50 shadow-sm rounded-2xl overflow-hidden hover:border-primary/30 transition-colors cursor-pointer group">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-primary/10 text-primary rounded-xl shrink-0 group-hover:scale-105 transition-transform">
-                        <FileText className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm leading-tight">{note.title}</h3>
-                        <p className="text-[11px] text-muted-foreground mt-1">From {note.author} • {note.size}</p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="shrink-0 text-primary hover:bg-primary/10">
-                      <Download className="w-5 h-5" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="bg-muted/10 border border-dashed border-border rounded-2xl p-8 text-center flex flex-col items-center justify-center animate-in fade-in duration-500">
+               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                 <ShoppingBag className="w-8 h-8 text-primary/50" />
+               </div>
+               <h3 className="font-bold text-lg mb-1">Your library is empty</h3>
+               <p className="text-muted-foreground text-sm max-w-[250px] mb-6">You haven't purchased any study materials yet.</p>
+               <Button onClick={() => setLocation("/subjects")} className="rounded-xl shadow-md">Explore Notes</Button>
             </div>
           </div>
 
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-green-600" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">My Uploads (Selling)</h2>
-            </div>
-            
-            <div className="space-y-4">
-              <Card className="border-border/50 shadow-sm rounded-2xl overflow-hidden hover:border-green-500/30 transition-colors cursor-pointer group">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-green-500/10 text-green-600 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
-                      <FileText className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm leading-tight">Chemistry Midterm Notes</h3>
-                      <p className="text-[11px] text-muted-foreground mt-1">Listed for Rs. 300 • 5 Sales</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-bold text-green-600">Active</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">Edit</div>
-                  </div>
-                </CardContent>
-              </Card>
+             <div className="flex items-center gap-2 mb-4 mt-8">
+                <BookOpen className="w-5 h-5 text-green-600" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">My Uploads (Selling)</h2>
+             </div>
+             <div className="bg-muted/10 border border-dashed border-border rounded-2xl p-8 text-center flex flex-col items-center justify-center animate-in fade-in duration-500 delay-150">
+               <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
+                 <FileText className="w-8 h-8 text-green-500/50" />
+               </div>
+               <h3 className="font-bold text-lg mb-1">No uploads yet</h3>
+               <p className="text-muted-foreground text-sm max-w-[250px] mb-6">Start selling your notes to earn money while helping others.</p>
+               <Button onClick={() => setLocation("/sell")} variant="outline" className="rounded-xl text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 shadow-sm">Upload Notes</Button>
             </div>
           </div>
         </div>

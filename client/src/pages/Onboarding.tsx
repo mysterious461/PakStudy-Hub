@@ -35,6 +35,12 @@ export default function Onboarding() {
     }
   };
 
+  const prevSlide = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(curr => curr - 1);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-background relative overflow-hidden">
       {/* Background Decor */}
@@ -49,7 +55,17 @@ export default function Onboarding() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center w-full touch-none"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(e, { offset }) => {
+              if (offset.x < -50) {
+                nextSlide();
+              } else if (offset.x > 50) {
+                prevSlide();
+              }
+            }}
           >
             <div className="w-64 h-64 rounded-2xl overflow-hidden mb-12 shadow-2xl ring-1 ring-border/50 bg-white flex items-center justify-center">
               <img 

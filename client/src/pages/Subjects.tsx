@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus, ChevronRight, FileText, Download, Banknote, CreditCard, Landmark, ArrowLeft, X, ShoppingBag } from "lucide-react";
+import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus, ChevronRight, FileText, Download, Banknote, CreditCard, Landmark, ArrowLeft, X, ShoppingBag, Search } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { EDUCATION_HIERARCHY } from "@/lib/educationData";
@@ -25,6 +25,10 @@ export default function Subjects() {
   // Payment/Sell Notes Dialogs
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
+  
+  // Search & Sort State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("popular");
 
   const availableDegrees = selectedLevel ? Object.keys(EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY]) : [];
   const availableCourses = (selectedLevel && selectedDegree) ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY][selectedDegree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
@@ -135,8 +139,29 @@ export default function Subjects() {
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Available Notes</h2>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold">Available Notes</h2>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[140px] h-9 text-xs rounded-xl bg-background border-border/50">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="popular">Top Rated</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search in this course..." 
+                  className="pl-9 h-10 rounded-xl bg-background/80 backdrop-blur-sm border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Mocked Notes Cards */}
@@ -145,8 +170,10 @@ export default function Subjects() {
                 { title: "Midterm Crash Course PDF", author: "Ali Khan", price: "500", rating: "4.8" },
                 { title: "Complete Handwritten Notes", author: "Sara Ahmed", price: "800", rating: "4.9" },
                 { title: "Past Papers Solved (2018-2023)", author: "Hamza Malik", price: "400", rating: "4.5" },
-              ].map((note, i) => (
-                <Card key={i} className="border-border/50 bg-background/80 backdrop-blur-sm shadow-sm rounded-2xl overflow-hidden">
+              ]
+              .filter(note => note.title.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((note, i) => (
+                <Card key={i} className="border-border/50 bg-background/80 backdrop-blur-sm shadow-sm rounded-2xl overflow-hidden hover:border-primary/20 transition-all">
                   <CardContent className="p-5 flex flex-col gap-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
