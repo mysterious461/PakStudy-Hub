@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Home, PlusSquare, User, BookOpen, Banknote } from "lucide-react";
+import { Home, PlusSquare, User, BookOpen, Banknote, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
@@ -8,7 +8,7 @@ export function BottomNav() {
 
   const navItems = [
     { icon: Home, label: "Home", path: "/home" },
-    { icon: BookOpen, label: "Subjects", path: "/subjects" },
+    { icon: ShoppingCart, label: "Buy", path: "/subjects" },
     { icon: PlusSquare, label: "Post", path: "/post" },
     { icon: Banknote, label: "Sell", path: "/sell" },
     { icon: User, label: "Me", path: "/profile" },

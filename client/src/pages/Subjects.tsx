@@ -66,8 +66,8 @@ export default function Subjects() {
              </Button>
           )}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{selectedCourse ? selectedCourse : "Courses & Notes"}</h1>
-            <p className="text-muted-foreground mt-1 text-sm">{selectedCourse ? "Resources & materials" : "Browse our course library"}</p>
+            <h1 className="text-2xl font-bold tracking-tight">{selectedCourse ? selectedCourse : "Buy Notes"}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">{selectedCourse ? "Resources & materials" : "Purchase study materials from peers"}</p>
           </div>
         </div>
       </header>
@@ -109,17 +109,17 @@ export default function Subjects() {
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">3. Select Course to View Notes</Label>
                 <div className="grid grid-cols-1 gap-3">
-                  {availableCourses.map((course: string) => (
-                    <Button 
-                      key={course} 
-                      variant="outline" 
-                      className="w-full justify-between h-14 bg-background/60 backdrop-blur-sm border-border/50 rounded-2xl hover:bg-primary/5 hover:border-primary/30 transition-all font-medium text-base shadow-sm"
-                      onClick={() => setSelectedCourse(course)}
-                    >
-                      {course}
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    </Button>
-                  ))}
+                {availableCourses.map((course: string) => (
+                  <Button 
+                    key={course} 
+                    variant="outline" 
+                    className="w-full justify-between h-14 bg-background/60 backdrop-blur-sm border-border/50 rounded-2xl hover:bg-primary/5 hover:border-primary/30 transition-all font-medium text-base shadow-sm"
+                    onClick={() => setSelectedCourse(course)}
+                  >
+                    {course}
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </Button>
+                ))}
                 </div>
               </div>
             )}

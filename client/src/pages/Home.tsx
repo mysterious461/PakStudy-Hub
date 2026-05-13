@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FileText } from "lucide-react";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
@@ -54,6 +55,31 @@ export default function Home() {
       });
     } catch (error) {
       console.error("Error upvoting:", error);
+    }
+  };
+
+  const handleShare = (platform: string, postId: string) => {
+    const url = `${window.location.origin}/question/${postId}`;
+    let shareUrl = "";
+
+    switch (platform) {
+      case "whatsapp":
+        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(url)}`;
+        break;
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`;
+        break;
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case "copy":
+        navigator.clipboard.writeText(url);
+        toast({ title: "Link Copied", description: "Link copied to clipboard!" });
+        return;
+    }
+
+    if (shareUrl) {
+      window.open(shareUrl, "_blank", "width=600,height=400");
     }
   };
 
@@ -185,7 +211,7 @@ export default function Home() {
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <button 
                     className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group"
                     onClick={(e) => handleUpvote(e, post.id)}
@@ -197,6 +223,43 @@ export default function Home() {
                     <MessageSquare className="w-5 h-5" />
                     <span className="text-sm font-medium">{post.commentsCount || 0}</span>
                   </button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button 
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 rounded-xl" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={() => handleShare('whatsapp', post.id)} className="gap-2 cursor-pointer">
+                        <div className="w-5 h-5 rounded bg-green-500 text-white flex items-center justify-center shrink-0">
+                          <MessageSquare className="w-3 h-3" />
+                        </div>
+                        <span>WhatsApp</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShare('twitter', post.id)} className="gap-2 cursor-pointer">
+                        <div className="w-5 h-5 rounded bg-blue-400 text-white flex items-center justify-center shrink-0">
+                          <Twitter className="w-3 h-3" />
+                        </div>
+                        <span>Twitter</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShare('facebook', post.id)} className="gap-2 cursor-pointer">
+                        <div className="w-5 h-5 rounded bg-blue-600 text-white flex items-center justify-center shrink-0">
+                          <Facebook className="w-3 h-3" />
+                        </div>
+                        <span>Facebook</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShare('copy', post.id)} className="gap-2 cursor-pointer">
+                        <div className="w-5 h-5 rounded bg-muted-foreground text-white flex items-center justify-center shrink-0">
+                          <LinkIcon className="w-3 h-3" />
+                        </div>
+                        <span>Copy Link</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <button className="text-xs font-medium text-primary hover:underline">Read more</button>
               </div>

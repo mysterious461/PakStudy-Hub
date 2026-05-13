@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, CreditCard, Banknote, Landmark } from "lucide-react";
+import { FileText, Download, CreditCard, Banknote, Landmark, Share2, Facebook, Twitter, Link as LinkIcon } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function QuestionDetail() {
   const [, params] = useRoute("/question/:id");
@@ -36,6 +37,31 @@ export default function QuestionDetail() {
       });
       setIsPaymentOpen(false);
     }, 2000);
+  };
+
+  const handleShare = (platform: string, postId: string) => {
+    const url = `${window.location.origin}/question/${postId}`;
+    let shareUrl = "";
+
+    switch (platform) {
+      case "whatsapp":
+        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(url)}`;
+        break;
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`;
+        break;
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case "copy":
+        navigator.clipboard.writeText(url);
+        toast({ title: "Link Copied", description: "Link copied to clipboard!" });
+        return;
+    }
+
+    if (shareUrl) {
+      window.open(shareUrl, "_blank", "width=600,height=400");
+    }
   };
 
   useEffect(() => {
@@ -259,6 +285,43 @@ export default function QuestionDetail() {
               </div>
               <span className="font-bold text-sm">{question.commentsCount || 0}</span>
             </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-all ml-auto">
+                  <div className="p-2 rounded-full bg-muted/50">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <span className="font-bold text-sm hidden sm:inline">Share</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                <DropdownMenuItem onClick={() => handleShare('whatsapp', question.id)} className="gap-2 cursor-pointer">
+                  <div className="w-5 h-5 rounded bg-green-500 text-white flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-3 h-3" />
+                  </div>
+                  <span>WhatsApp</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('twitter', question.id)} className="gap-2 cursor-pointer">
+                  <div className="w-5 h-5 rounded bg-blue-400 text-white flex items-center justify-center shrink-0">
+                    <Twitter className="w-3 h-3" />
+                  </div>
+                  <span>Twitter</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('facebook', question.id)} className="gap-2 cursor-pointer">
+                  <div className="w-5 h-5 rounded bg-blue-600 text-white flex items-center justify-center shrink-0">
+                    <Facebook className="w-3 h-3" />
+                  </div>
+                  <span>Facebook</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('copy', question.id)} className="gap-2 cursor-pointer">
+                  <div className="w-5 h-5 rounded bg-muted-foreground text-white flex items-center justify-center shrink-0">
+                    <LinkIcon className="w-3 h-3" />
+                  </div>
+                  <span>Copy Link</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="pt-10 space-y-6">

@@ -278,10 +278,18 @@ export default function Profile() {
                     <DialogHeader>
                       <DialogTitle>Top Up Wallet</DialogTitle>
                       <DialogDescription>
-                        Add funds to your wallet using your Credit or Debit Card via App Pay.
+                        Add funds to your wallet securely using App Pay. 
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
+                      <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
+                        <h4 className="text-sm font-semibold text-primary mb-1">How it works</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Your payment is securely processed through App Pay. 
+                          The topped-up amount will be instantly available in your wallet 
+                          to purchase notes and other educational resources on the platform.
+                        </p>
+                      </div>
                       <div className="space-y-2">
                         <Label>Amount to add (Rs.)</Label>
                         <Input 
@@ -308,6 +316,20 @@ export default function Profile() {
                           onChange={(e) => setTopUpCard(e.target.value)}
                           className="h-12 bg-muted/50 border-none rounded-xl"
                         />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 delay-75">
+                        <div className="space-y-2">
+                          <Label>Expiry Date</Label>
+                          <Input placeholder="MM/YY" className="h-12 bg-muted/50 border-none rounded-xl" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Security Code</Label>
+                          <Input placeholder="CVC" className="h-12 bg-muted/50 border-none rounded-xl" type="password" maxLength={3} />
+                        </div>
+                      </div>
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2 delay-100">
+                        <Label>Cardholder Name</Label>
+                        <Input placeholder="Name on card" className="h-12 bg-muted/50 border-none rounded-xl" />
                       </div>
                     </div>
                     <DialogFooter>
