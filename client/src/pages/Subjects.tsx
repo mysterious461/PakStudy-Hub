@@ -23,7 +23,7 @@ export default function Subjects() {
   const [selectedCourse, setSelectedCourse] = useState<string>("");
 
   // Payment/Sell Notes Dialogs
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentOpenFor, setPaymentOpenFor] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
   
   // Search & Sort State
@@ -48,7 +48,7 @@ export default function Subjects() {
     toast({ title: "Payment Processing", description: "Redirecting to payment gateway..." });
     setTimeout(() => {
       toast({ title: "Purchase Successful", description: "Notes have been added to your study materials." });
-      setIsPaymentOpen(false);
+      setPaymentOpenFor(null);
     }, 2000);
   };
 
@@ -190,12 +190,67 @@ export default function Subjects() {
                       </div>
                     </div>
                     
-                    <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full rounded-xl gap-2 font-medium">
-                          <Download className="w-4 h-4" /> Purchase & Download
-                        </Button>
-                      </DialogTrigger>
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-full rounded-xl gap-2 font-medium">
+                            <FileText className="w-4 h-4" /> Preview
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw] max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>{note.title}</DialogTitle>
+                            <DialogDescription>
+                              By {note.author} • ⭐ {note.rating} (124 reviews)
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4 space-y-6">
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-sm">Preview</h4>
+                              <div className="h-40 bg-muted/50 rounded-xl border border-border flex items-center justify-center relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/90" />
+                                <div className="text-center z-10 px-4">
+                                  <p className="text-xs text-muted-foreground mb-2">Sample page from the notes...</p>
+                                  <div className="w-full h-2 bg-muted-foreground/20 rounded-full mb-2"></div>
+                                  <div className="w-3/4 h-2 bg-muted-foreground/20 rounded-full mb-2 mx-auto"></div>
+                                  <div className="w-5/6 h-2 bg-muted-foreground/20 rounded-full mx-auto"></div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-sm">Top Reviews</h4>
+                              <div className="space-y-3">
+                                <div className="bg-muted/30 p-3 rounded-xl text-sm">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-semibold text-xs">Ayesha M.</span>
+                                    <span className="text-[10px] text-muted-foreground">⭐ 5.0</span>
+                                  </div>
+                                  <p className="text-muted-foreground text-xs leading-relaxed">"These notes saved my life for the midterm! Very concise and easy to understand."</p>
+                                </div>
+                                <div className="bg-muted/30 p-3 rounded-xl text-sm">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-semibold text-xs">Bilal K.</span>
+                                    <span className="text-[10px] text-muted-foreground">⭐ 4.5</span>
+                                  </div>
+                                  <p className="text-muted-foreground text-xs leading-relaxed">"Good coverage of all topics, handwriting is neat. Wish it had more examples though."</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button className="w-full rounded-xl" onClick={() => setPaymentOpenFor(note.title)}>
+                              Buy for Rs. {note.price}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      <Dialog open={paymentOpenFor === note.title} onOpenChange={(open) => setPaymentOpenFor(open ? note.title : null)}>
+                        <DialogTrigger asChild>
+                          <Button className="w-full rounded-xl gap-2 font-medium bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Download className="w-4 h-4" /> Buy
+                          </Button>
+                        </DialogTrigger>
                       <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
                         <DialogHeader>
                           <DialogTitle>Purchase Notes</DialogTitle>
@@ -240,6 +295,7 @@ export default function Subjects() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

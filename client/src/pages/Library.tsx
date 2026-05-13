@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, BookOpen, Download, FileText, ShoppingBag, SearchX } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, FileText, ShoppingBag, SearchX, Bookmark } from "lucide-react";
 
 export default function Library() {
   const [, setLocation] = useLocation();
@@ -46,6 +46,21 @@ export default function Library() {
                <h3 className="font-bold text-lg mb-1">No uploads yet</h3>
                <p className="text-muted-foreground text-sm max-w-[250px] mb-6">Start selling your notes to earn money while helping others.</p>
                <Button onClick={() => setLocation("/sell")} variant="outline" className="rounded-xl text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 shadow-sm">Upload Notes</Button>
+            </div>
+          </div>
+
+          <div>
+             <div className="flex items-center gap-2 mb-4 mt-8">
+                <Bookmark className="w-5 h-5 text-blue-600" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Saved Questions</h2>
+             </div>
+             <div className="bg-muted/10 border border-dashed border-border rounded-2xl p-8 text-center flex flex-col items-center justify-center animate-in fade-in duration-500 delay-300">
+               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
+                 <Bookmark className="w-8 h-8 text-blue-500/50" />
+               </div>
+               <h3 className="font-bold text-lg mb-1">No saved questions</h3>
+               <p className="text-muted-foreground text-sm max-w-[250px] mb-6">Questions you save will appear here for easy access later.</p>
+               <Button onClick={() => setLocation("/home")} variant="outline" className="rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 shadow-sm">Browse Questions</Button>
             </div>
           </div>
         </div>

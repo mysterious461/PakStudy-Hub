@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight, CreditCard, Plus } from "lucide-react";
+import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight, CreditCard, Plus, Moon, Sun, Trophy } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
@@ -35,6 +35,26 @@ export default function Profile() {
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCard, setTopUpCard] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check initial dark mode state
+    setIsDarkMode(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const toggleDarkMode = () => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+    }
+    setIsDarkMode(!isDarkMode);
+    toast({
+      title: "Theme Changed",
+      description: `Dark mode ${!isDarkMode ? 'enabled' : 'disabled'}.`
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -376,6 +396,38 @@ export default function Profile() {
           </Card>
         </div>
 
+        <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Top Contributors</h3>
+        <Card className="border-border/50 shadow-sm mb-6 bg-background relative z-10">
+          <CardContent className="p-0">
+            <div className="p-4 space-y-4">
+              {[
+                { name: "Ali Khan", rep: 1250, badge: "🥇", initials: "AK", color: "bg-yellow-100 text-yellow-700" },
+                { name: "Sara Ahmed", rep: 980, badge: "🥈", initials: "SA", color: "bg-gray-200 text-gray-700" },
+                { name: "Hamza Malik", rep: 845, badge: "🥉", initials: "HM", color: "bg-orange-100 text-orange-700" }
+              ].map((contributor, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="w-10 h-10 border border-border">
+                        <AvatarFallback className={contributor.color + " font-bold"}>{contributor.initials}</AvatarFallback>
+                      </Avatar>
+                      <span className="absolute -bottom-1 -right-1 text-sm bg-background rounded-full leading-none">{contributor.badge}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">{contributor.name}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Top Answerer</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-primary">{contributor.rep}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Rep</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Resources</h3>
         <div className="space-y-3 relative z-10">
           <Card 
@@ -416,6 +468,25 @@ export default function Profile() {
               </div>
               <div className="flex-1">
                 <h4 className="font-medium text-sm">Settings</h4>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
+            onClick={toggleDarkMode}
+          >
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg">
+                  {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm">Dark Mode</h4>
+                </div>
+              </div>
+              <div className={`w-11 h-6 rounded-full transition-colors flex items-center px-1 ${isDarkMode ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
             </CardContent>
           </Card>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
@@ -21,8 +21,21 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const toggleSave = (e: React.MouseEvent, postId: string) => {
+    e.stopPropagation();
+    setSavedPosts(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }));
+    toast({
+      title: savedPosts[postId] ? "Removed from Library" : "Saved to Library",
+      description: savedPosts[postId] ? "Question removed from your saved items." : "Question saved to your library for later.",
+    });
+  };
 
   useEffect(() => {
     const q = query(collection(db, "questions"), orderBy("createdAt", "desc"));
@@ -252,6 +265,13 @@ export default function Home() {
                   <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
                     <MessageSquare className="w-5 h-5" />
                     <span className="text-sm font-medium">{post.commentsCount || 0}</span>
+                  </button>
+
+                  <button 
+                    className={`flex items-center gap-1.5 transition-colors ${savedPosts[post.id] ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                    onClick={(e) => toggleSave(e, post.id)}
+                  >
+                    <Bookmark className={`w-5 h-5 ${savedPosts[post.id] ? 'fill-current' : ''}`} />
                   </button>
                   
                   <DropdownMenu>

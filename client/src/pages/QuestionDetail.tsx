@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, CreditCard, Banknote, Landmark, Share2, Facebook, Twitter, Link as LinkIcon } from "lucide-react";
+import { FileText, Download, CreditCard, Banknote, Landmark, Share2, Facebook, Twitter, Link as LinkIcon, Bookmark } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function QuestionDetail() {
@@ -24,6 +24,15 @@ export default function QuestionDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+
+  const toggleSave = () => {
+    setIsSaved(!isSaved);
+    toast({
+      title: isSaved ? "Removed from Library" : "Saved to Library",
+      description: isSaved ? "Question removed from your saved items." : "Question saved to your library for later.",
+    });
+  };
 
   const handlePurchaseNotes = () => {
     toast({
@@ -285,6 +294,16 @@ export default function QuestionDetail() {
               </div>
               <span className="font-bold text-sm">{question.commentsCount || 0}</span>
             </div>
+
+            <button 
+              className={`flex items-center gap-2 transition-colors group ${isSaved ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+              onClick={toggleSave}
+            >
+              <div className={`p-2 rounded-full transition-colors ${isSaved ? 'bg-primary/10' : 'bg-muted/50 group-hover:bg-primary/10'}`}>
+                <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+              </div>
+              <span className="font-bold text-sm hidden sm:inline">{isSaved ? "Saved" : "Save"}</span>
+            </button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
