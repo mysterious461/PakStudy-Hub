@@ -1,3 +1,17 @@
+export const UNIVERSITIES = [
+  "NUST - National University of Sciences and Technology",
+  "FAST-NU - National University of Computer and Emerging Sciences",
+  "LUMS - Lahore University of Management Sciences",
+  "IBA - Institute of Business Administration",
+  "UET - University of Engineering and Technology",
+  "PU - University of the Punjab",
+  "COMSATS University",
+  "QAU - Quaid-i-Azam University",
+  "GIKI - Ghulam Ishaq Khan Institute",
+  "KU - University of Karachi",
+  "Other"
+];
+
 export const EDUCATION_HIERARCHY = {
   "Matriculation / O-Levels": {
     "Science Group": ["Mathematics", "Physics", "Chemistry", "Biology", "Computer Science"],

@@ -11,7 +11,7 @@ import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { ImagePlus, X, FileText, Plus, EyeOff, Mic } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { EDUCATION_HIERARCHY } from "@/lib/educationData";
+import { EDUCATION_HIERARCHY, UNIVERSITIES } from "@/lib/educationData";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Post() {
@@ -24,6 +24,7 @@ export default function Post() {
     level: "",
     degree: "",
     course: "",
+    university: "",
     sellNotes: false,
     notesPrice: "",
     isAnonymous: false
@@ -103,6 +104,7 @@ export default function Post() {
       await addDoc(collection(db, "questions"), {
         ...formData,
         subject: formData.course,
+        university: formData.university || null,
         userId: formData.isAnonymous ? "anonymous" : auth.currentUser?.uid,
         userName: formData.isAnonymous ? "Anonymous Student" : (auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0]),
         createdAt: serverTimestamp(),
@@ -158,7 +160,7 @@ export default function Post() {
         <div className="space-y-6">
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">1. Choose Education Level</Label>
-            <Select onValueChange={(v) => setFormData({...formData, level: v, degree: "", course: ""})}>
+            <Select onValueChange={(v) => setFormData({...formData, level: v, degree: "", course: "", university: ""})}>
               <SelectTrigger className="bg-background/80 backdrop-blur-sm border-border/50 h-12 rounded-xl">
                 <SelectValue placeholder="Select Level" />
               </SelectTrigger>
@@ -169,6 +171,22 @@ export default function Post() {
               </SelectContent>
             </Select>
           </div>
+
+          {(formData.level === "Bachelors (BS)" || formData.level === "Masters (MS/MPhil)") && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">University</Label>
+              <Select onValueChange={(v) => setFormData({...formData, university: v})}>
+                <SelectTrigger className="bg-background/80 backdrop-blur-sm border-border/50 h-12 rounded-xl">
+                  <SelectValue placeholder="Select University" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNIVERSITIES.map(uni => (
+                    <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {formData.level && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
