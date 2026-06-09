@@ -43,7 +43,10 @@ export default function Post() {
   const availableCourses = (formData.level && formData.degree) ? EDUCATION_HIERARCHY[formData.level as keyof typeof EDUCATION_HIERARCHY][formData.degree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
 
   const handleAddCourse = async () => {
-    if (!courseData.courseNo || !courseData.degreeName || !courseData.university || !courseData.semesterNo) {
+    // If university is not selected, fallback to the one selected in the main form if it exists
+    const finalUniversity = courseData.university || formData.university;
+    
+    if (!courseData.courseNo || !courseData.degreeName || !finalUniversity || !courseData.semesterNo) {
       toast({
         title: "Missing fields",
         description: "Please fill in all the details.",
@@ -57,6 +60,7 @@ export default function Post() {
       if (auth.currentUser) {
         await addDoc(collection(db, "pending_courses"), {
           ...courseData,
+          university: finalUniversity,
           userId: auth.currentUser.uid,
           status: "pending",
           createdAt: serverTimestamp()
@@ -244,13 +248,16 @@ export default function Post() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="university" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">University</Label>
-                        <Input 
-                          id="university" 
-                          placeholder="e.g. NUST" 
-                          className="bg-muted/50 border-none h-11 rounded-xl focus-visible:ring-1 ring-primary/20"
-                          value={courseData.university}
-                          onChange={(e) => setCourseData({...courseData, university: e.target.value})}
-                        />
+                        <Select value={courseData.university} onValueChange={(v) => setCourseData({...courseData, university: v})}>
+                          <SelectTrigger className="bg-muted/50 border-none h-11 rounded-xl focus-visible:ring-1 ring-primary/20">
+                            <SelectValue placeholder="Select University" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {UNIVERSITIES.map(uni => (
+                              <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="semesterNo" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Semester No</Label>
