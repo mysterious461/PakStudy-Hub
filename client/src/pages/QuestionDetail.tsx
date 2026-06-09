@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, CreditCard, Banknote, Landmark, Share2, Facebook, Twitter, Link as LinkIcon, Bookmark } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Star, StarHalf } from "lucide-react";
 
 export default function QuestionDetail() {
   const [, params] = useRoute("/question/:id");
@@ -222,7 +223,17 @@ export default function QuestionDetail() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm">Attached Notes</h4>
-                  <p className="text-xs text-muted-foreground">Price: Rs. {question.notesPrice}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Price: Rs. {question.notesPrice}</p>
+                  <div className="flex items-center gap-1">
+                    <div className="flex">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <StarHalf className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-medium">4.8 (24 reviews)</span>
+                  </div>
                 </div>
               </div>
               <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>

@@ -13,6 +13,8 @@ import Profile from "@/pages/Profile";
 import QuestionDetail from "@/pages/QuestionDetail";
 import Sell from "@/pages/Sell";
 import Library from "@/pages/Library";
+import Admin from "@/pages/Admin";
+import Achievements from "@/pages/Achievements";
 
 function Router() {
   return (
@@ -27,6 +29,8 @@ function Router() {
         <Route path="/profile" component={Profile} />
         <Route path="/library" component={Library} />
         <Route path="/question/:id" component={QuestionDetail} />
+        <Route path="/admin" component={Admin} />
+        <Route path="/achievements" component={Achievements} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>

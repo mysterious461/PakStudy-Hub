@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
@@ -154,14 +154,33 @@ export default function Home() {
           </Dialog>
         </div>
         
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search questions, topics..." 
-            className="pl-9 h-10 rounded-xl bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search questions, topics..." 
+              className="pl-9 h-10 rounded-xl bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0 h-10 w-10 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm">
+                <SlidersHorizontal className="w-4 h-4 text-foreground/80" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
+              <div className="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Sort By</div>
+              <DropdownMenuItem className="rounded-lg cursor-pointer">Most Recent</DropdownMenuItem>
+              <DropdownMenuItem className="rounded-lg cursor-pointer">Highest Upvotes</DropdownMenuItem>
+              <DropdownMenuItem className="rounded-lg cursor-pointer">Most Answers</DropdownMenuItem>
+              <div className="h-px bg-border/50 my-1.5" />
+              <div className="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Filter</div>
+              <DropdownMenuItem className="rounded-lg cursor-pointer">Has Attachments (Notes)</DropdownMenuItem>
+              <DropdownMenuItem className="rounded-lg cursor-pointer">Unanswered Only</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

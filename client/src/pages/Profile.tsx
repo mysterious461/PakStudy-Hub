@@ -446,7 +446,7 @@ export default function Profile() {
 
           <Card 
             className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={() => toast({ title: "Coming Soon", description: "Achievements will be available in the next update." })}
+            onClick={() => setLocation("/achievements")}
           >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
@@ -468,6 +468,22 @@ export default function Profile() {
               </div>
               <div className="flex-1">
                 <h4 className="font-medium text-sm">Settings</h4>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mock Admin Link for demonstration */}
+          <Card 
+            className="border-border/50 shadow-sm cursor-pointer hover:bg-red-500/10 transition-all active:scale-[0.98] mt-4 border-red-500/30"
+            onClick={() => setLocation("/admin")}
+          >
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-sm text-red-600">Admin Dashboard</h4>
+                <p className="text-xs text-red-600/70">Content moderation & management</p>
               </div>
             </CardContent>
           </Card>
