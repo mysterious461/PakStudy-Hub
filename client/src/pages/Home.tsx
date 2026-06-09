@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
@@ -186,6 +186,25 @@ export default function Home() {
 
       {/* Categories */}
       <div className="bg-background pb-2">
+        <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar mb-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="shrink-0 h-9 rounded-xl border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800"
+            onClick={() => setLocation("/flashcards")}
+          >
+            <Brain className="w-4 h-4 mr-2" /> Quick Review
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="shrink-0 h-9 rounded-xl border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+            onClick={() => setLocation("/study-rooms")}
+          >
+            <Users className="w-4 h-4 mr-2" /> Study Rooms
+          </Button>
+        </div>
+
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex w-max space-x-2 pb-2 px-6">
             {CATEGORIES.map((cat) => (

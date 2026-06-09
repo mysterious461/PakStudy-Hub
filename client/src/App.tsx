@@ -16,6 +16,8 @@ import Library from "@/pages/Library";
 import Admin from "@/pages/Admin";
 import Achievements from "@/pages/Achievements";
 import Settings from "@/pages/Settings";
+import Flashcards from "@/pages/Flashcards";
+import StudyRooms from "@/pages/StudyRooms";
 
 function Router() {
   return (
@@ -33,6 +35,8 @@ function Router() {
         <Route path="/admin" component={Admin} />
         <Route path="/achievements" component={Achievements} />
         <Route path="/settings" component={Settings} />
+        <Route path="/flashcards" component={Flashcards} />
+        <Route path="/study-rooms" component={StudyRooms} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>

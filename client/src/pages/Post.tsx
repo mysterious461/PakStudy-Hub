@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { ImagePlus, X, FileText, Plus } from "lucide-react";
+import { ImagePlus, X, FileText, Plus, EyeOff, Mic } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { EDUCATION_HIERARCHY } from "@/lib/educationData";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -25,7 +25,8 @@ export default function Post() {
     degree: "",
     course: "",
     sellNotes: false,
-    notesPrice: ""
+    notesPrice: "",
+    isAnonymous: false
   });
 
   const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
@@ -102,8 +103,8 @@ export default function Post() {
       await addDoc(collection(db, "questions"), {
         ...formData,
         subject: formData.course,
-        userId: auth.currentUser?.uid,
-        userName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0],
+        userId: formData.isAnonymous ? "anonymous" : auth.currentUser?.uid,
+        userName: formData.isAnonymous ? "Anonymous Student" : (auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0]),
         createdAt: serverTimestamp(),
         upvotes: 0,
         commentsCount: 0
@@ -289,6 +290,22 @@ export default function Post() {
               <div className="pt-4 border-t border-border/50 space-y-4">
                 <div className="flex items-center justify-between bg-background/80 backdrop-blur-sm p-4 rounded-xl border border-border/50">
                   <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                      <EyeOff className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Ask Anonymously</h3>
+                      <p className="text-xs text-muted-foreground">Hide your identity</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={formData.isAnonymous} 
+                    onCheckedChange={(c) => setFormData({...formData, isAnonymous: c})} 
+                  />
+                </div>
+
+                <div className="flex items-center justify-between bg-background/80 backdrop-blur-sm p-4 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 text-primary rounded-lg">
                       <FileText className="w-5 h-5" />
                     </div>
@@ -327,10 +344,16 @@ export default function Post() {
                   </div>
                 )}
 
-                <Button variant="outline" className="w-full justify-start gap-2 h-12 text-muted-foreground border-dashed bg-background/50">
-                  <ImagePlus className="w-5 h-5" />
-                  Add photos or screenshots
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="w-full justify-start gap-2 h-12 text-muted-foreground border-dashed bg-background/50 text-xs">
+                    <ImagePlus className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Add Photo</span>
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start gap-2 h-12 text-muted-foreground border-dashed bg-background/50 text-xs">
+                    <Mic className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Voice Note</span>
+                  </Button>
+                </div>
               </div>
             </div>
           )}
