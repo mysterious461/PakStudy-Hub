@@ -460,7 +460,7 @@ export default function Profile() {
 
           <Card 
             className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={() => toast({ title: "Coming Soon", description: "Settings will be available in the next update." })}
+            onClick={() => setLocation("/settings")}
           >
             <CardContent className="flex items-center gap-4 p-4">
               <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">

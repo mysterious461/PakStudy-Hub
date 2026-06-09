@@ -15,6 +15,7 @@ import Sell from "@/pages/Sell";
 import Library from "@/pages/Library";
 import Admin from "@/pages/Admin";
 import Achievements from "@/pages/Achievements";
+import Settings from "@/pages/Settings";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
         <Route path="/question/:id" component={QuestionDetail} />
         <Route path="/admin" component={Admin} />
         <Route path="/achievements" component={Achievements} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>
