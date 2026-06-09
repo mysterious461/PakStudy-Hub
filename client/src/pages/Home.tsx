@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
@@ -202,6 +202,14 @@ export default function Home() {
             onClick={() => setLocation("/study-rooms")}
           >
             <Users className="w-4 h-4 mr-2" /> Study Rooms
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="shrink-0 h-9 rounded-xl border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+            onClick={() => setLocation("/leaderboard")}
+          >
+            <Trophy className="w-4 h-4 mr-2 text-amber-500" /> Leaderboard
           </Button>
         </div>
 

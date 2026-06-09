@@ -18,6 +18,7 @@ import Achievements from "@/pages/Achievements";
 import Settings from "@/pages/Settings";
 import Flashcards from "@/pages/Flashcards";
 import StudyRooms from "@/pages/StudyRooms";
+import Leaderboard from "@/pages/Leaderboard";
 
 function Router() {
   return (
@@ -37,6 +38,7 @@ function Router() {
         <Route path="/settings" component={Settings} />
         <Route path="/flashcards" component={Flashcards} />
         <Route path="/study-rooms" component={StudyRooms} />
+        <Route path="/leaderboard" component={Leaderboard} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>
