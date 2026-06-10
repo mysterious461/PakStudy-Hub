@@ -134,61 +134,63 @@ export default function Profile() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-muted/10 relative">
-      <div className="h-32 w-full absolute top-0 left-0 z-0 overflow-hidden">
+    <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
+      <div className="h-40 w-full absolute top-0 left-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/80 to-primary/20 mix-blend-multiply z-10" />
         <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-primary/80 mix-blend-multiply" />
       </div>
       
-      <div className="flex-1 overflow-y-auto pb-24 z-10 px-6 pt-16">
-        <div className="bg-background rounded-3xl shadow-sm p-6 mb-6 border border-border/50 relative overflow-hidden">
+      <div className="flex-1 overflow-y-auto pb-32 z-10 px-6 pt-20">
+        <div className="bg-background/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 mb-6 border border-border/50 relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -translate-y-10 translate-x-10" />
+           
            {!isEditing ? (
              <Button 
                variant="ghost" 
                size="icon" 
-               className="absolute top-4 right-4 text-muted-foreground hover:bg-muted/50"
+               className="absolute top-4 right-4 text-muted-foreground hover:bg-muted/50 rounded-full"
                onClick={() => setIsEditing(true)}
              >
                <Edit className="w-4 h-4" />
              </Button>
            ) : (
              <div className="absolute top-4 right-4 flex gap-1">
-               <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setIsEditing(false)}>
+               <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-full" onClick={() => setIsEditing(false)}>
                  <X className="w-4 h-4" />
                </Button>
-               <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10" onClick={handleSave}>
+               <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 rounded-full" onClick={handleSave}>
                  <Save className="w-4 h-4" />
                </Button>
              </div>
            )}
 
-           <div className="flex flex-col items-center">
-             <Avatar className="w-24 h-24 border-4 border-background shadow-xl mb-4">
+           <div className="flex flex-col items-center relative z-10">
+             <Avatar className="w-28 h-28 border-4 border-background shadow-xl mb-5 ring-2 ring-primary/10">
                <AvatarImage src={user?.photoURL || ""} />
-               <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+               <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
                  {formData.displayName.charAt(0).toUpperCase() || "S"}
                </AvatarFallback>
              </Avatar>
 
              {isEditing ? (
-               <div className="w-full space-y-4 mt-2">
-                 <div className="space-y-1.5">
-                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Full Name</Label>
+               <div className="w-full space-y-5 mt-2 animate-in fade-in duration-300">
+                 <div className="space-y-2">
+                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Full Name</Label>
                    <div className="relative">
-                     <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                      <Input 
                        value={formData.displayName} 
                        onChange={(e) => setFormData({...formData, displayName: e.target.value})}
-                       className="pl-9 h-10 bg-muted/30 border-none rounded-xl focus-visible:ring-1 ring-primary/20" 
+                       className="pl-10 h-12 bg-muted/50 border-none rounded-xl focus-visible:ring-1 ring-primary/30" 
                      />
                    </div>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-3">
-                   <div className="space-y-1.5">
-                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Education Level</Label>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Education Level</Label>
                      <Select value={formData.grade} onValueChange={(v) => setFormData({...formData, grade: v})}>
-                       <SelectTrigger className="bg-muted/30 border-none rounded-xl h-10 focus:ring-1 ring-primary/20">
+                       <SelectTrigger className="bg-muted/50 border-none rounded-xl h-12 focus:ring-1 ring-primary/30">
                          <SelectValue />
                        </SelectTrigger>
                        <SelectContent>
@@ -206,10 +208,10 @@ export default function Profile() {
                        </SelectContent>
                      </Select>
                    </div>
-                   <div className="space-y-1.5">
-                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Track / Major</Label>
+                   <div className="space-y-2">
+                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Track / Major</Label>
                      <Select value={formData.track} onValueChange={(v) => setFormData({...formData, track: v})}>
-                       <SelectTrigger className="bg-muted/30 border-none rounded-xl h-10 focus:ring-1 ring-primary/20">
+                       <SelectTrigger className="bg-muted/50 border-none rounded-xl h-12 focus:ring-1 ring-primary/30">
                          <SelectValue />
                        </SelectTrigger>
                        <SelectContent>
@@ -222,69 +224,74 @@ export default function Profile() {
                    </div>
                  </div>
 
-                 <div className="space-y-1.5">
-                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Bio</Label>
+                 <div className="space-y-2">
+                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Bio</Label>
                    <Input 
                      value={formData.bio} 
                      onChange={(e) => setFormData({...formData, bio: e.target.value})}
                      placeholder="A little bit about yourself"
-                     className="h-10 bg-muted/30 border-none rounded-xl focus-visible:ring-1 ring-primary/20" 
+                     className="h-12 bg-muted/50 border-none rounded-xl focus-visible:ring-1 ring-primary/30" 
                    />
                  </div>
 
-                 <div className="space-y-1.5">
-                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">University / School</Label>
+                 <div className="space-y-2">
+                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">University / School</Label>
                    <Input 
                      value={formData.university} 
                      onChange={(e) => setFormData({...formData, university: e.target.value})}
                      placeholder="Enter your institution"
-                     className="h-10 bg-muted/30 border-none rounded-xl focus-visible:ring-1 ring-primary/20" 
+                     className="h-12 bg-muted/50 border-none rounded-xl focus-visible:ring-1 ring-primary/30" 
                    />
                  </div>
                </div>
              ) : (
-               <>
-                 <h2 className="text-xl font-bold">{formData.displayName}</h2>
-                 <p className="text-muted-foreground text-sm mb-1">{user?.email || "student@example.com"}</p>
-                 <p className="text-xs text-primary font-medium mb-2">{formData.university || "Add your university"}</p>
-                 {formData.bio && <p className="text-sm text-foreground/80 mb-4 text-center max-w-[80%]">{formData.bio}</p>}
+               <div className="animate-in fade-in duration-300 flex flex-col items-center">
+                 <h2 className="text-2xl font-extrabold tracking-tight mb-1">{formData.displayName}</h2>
+                 <p className="text-muted-foreground text-sm font-medium mb-1.5">{user?.email || "student@example.com"}</p>
+                 <p className="text-sm text-primary font-semibold mb-3">{formData.university || "Add your university"}</p>
+                 {formData.bio && <p className="text-sm text-foreground/70 mb-5 text-center max-w-[85%] leading-relaxed">{formData.bio}</p>}
                  
                  <div className="flex gap-2 mb-6">
-                   <Badge variant="secondary" className="px-3 py-1 bg-accent/10 text-accent-foreground border-none">{formData.grade}</Badge>
-                   <Badge variant="secondary" className="px-3 py-1 bg-primary/10 text-primary border-none">{formData.track}</Badge>
+                   <Badge variant="secondary" className="px-3 py-1.5 bg-accent/10 text-accent-foreground border-none font-medium">{formData.grade}</Badge>
+                   <Badge variant="secondary" className="px-3 py-1.5 bg-primary/10 text-primary border-none font-medium">{formData.track}</Badge>
                  </div>
-               </>
+               </div>
              )}
 
-             <div className="grid grid-cols-3 gap-8 w-full border-t border-border/50 pt-6 mt-2 text-center">
-               <div>
-                 <div className="text-xl font-bold">{stats.questions}</div>
-                 <div className="text-xs text-muted-foreground">Questions</div>
+             <div className="grid grid-cols-3 gap-6 w-full border-t border-border/40 pt-6 mt-2 text-center">
+               <div className="bg-muted/30 p-3 rounded-2xl">
+                 <div className="text-2xl font-black text-foreground/90">{stats.questions}</div>
+                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Questions</div>
                </div>
-               <div>
-                 <div className="text-xl font-bold">{stats.answers}</div>
-                 <div className="text-xs text-muted-foreground">Answers</div>
+               <div className="bg-muted/30 p-3 rounded-2xl">
+                 <div className="text-2xl font-black text-foreground/90">{stats.answers}</div>
+                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Answers</div>
                </div>
-               <div>
-                 <div className="text-xl font-bold">{stats.reputation}</div>
-                 <div className="text-xs text-muted-foreground">Reputation</div>
+               <div className="bg-primary/10 p-3 rounded-2xl ring-1 ring-primary/20">
+                 <div className="text-2xl font-black text-primary">{stats.reputation}</div>
+                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mt-1">Reputation</div>
                </div>
              </div>
            </div>
         </div>
 
-        <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Wallet</h3>
-        <div className="space-y-3 relative z-10 mb-8">
-          <Card className="border-border/50 shadow-sm overflow-hidden bg-background">
+        <div className="flex items-center justify-between mb-4 px-2 relative z-10 mt-8">
+          <h3 className="font-bold text-lg tracking-tight">Wallet</h3>
+          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">Active</Badge>
+        </div>
+        
+        <div className="space-y-3 relative z-10 mb-10">
+          <Card className="border-border/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden bg-background rounded-3xl">
             <CardContent className="p-0">
-              <div className="bg-primary/10 p-6 flex flex-col justify-between border-b border-primary/10 gap-4">
-                <div className="flex items-center justify-between">
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 flex flex-col justify-between border-b border-border/30 gap-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -translate-y-10 translate-x-10" />
+                <div className="flex items-center justify-between relative z-10">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-1">Available Balance</p>
-                    <h4 className="text-3xl font-bold text-primary">Rs. 2,450</h4>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Available Balance</p>
+                    <h4 className="text-4xl font-black text-foreground tracking-tight">Rs. 2,450</h4>
                   </div>
-                  <div className="p-4 bg-primary/20 rounded-2xl text-primary shadow-inner">
-                    <Banknote className="w-8 h-8" />
+                  <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl text-primary shadow-sm border border-border/50">
+                    <Banknote className="w-7 h-7" />
                   </div>
                 </div>
                 
