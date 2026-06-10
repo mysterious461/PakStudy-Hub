@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Trophy, Flame, TrendingUp, Award, User, GraduationCap } from "lucide-react";
+import { ChevronLeft, Trophy, Flame, TrendingUp, Award, User, GraduationCap, ArrowUp } from "lucide-react";
 import { UNIVERSITIES } from "@/lib/educationData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
