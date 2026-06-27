@@ -104,152 +104,130 @@ export default function Home() {
   });
 
   return (
-    <div className="h-full flex flex-col bg-muted/10 relative">
+    <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
       {/* Header */}
-      <header className="px-6 py-4 sticky top-0 z-10 border-b border-border/50 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
-        </div>
-        <div className="relative z-10 flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <img src={logoImage} alt="Logo" className="w-8 h-8" />
-            <h1 className="text-xl font-bold tracking-tight text-primary">PakStudy</h1>
+      <header className="px-4 py-4 pt-6 sticky top-0 z-20 border-b border-border/40 bg-background/60 backdrop-blur-xl shadow-[0_4px_30px_rgb(0,0,0,0.03)] flex flex-col gap-4 transition-all duration-300">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-4 duration-500">
+            <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center p-1 border border-border/50 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <img src={logoImage} alt="PakStudy Hub" className="w-full h-full object-contain relative z-10" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight text-foreground/90 leading-tight">PakStudy Hub</h1>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-primary">Student Community</p>
+            </div>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <button className="relative p-2 rounded-full hover:bg-muted/50 transition-colors">
-                <Bell className="w-6 h-6 text-foreground" />
-                <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-background" />
-              </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
-              <DialogHeader>
-                <DialogTitle>Notifications</DialogTitle>
-                <DialogDescription>
-                  Recent activity related to your courses.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm"><strong>Ali Khan</strong> answered your question in <strong>Computer Science</strong>.</p>
-                    <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm">New notes available for <strong>Software Engineering</strong>: "Midterm Preparation Guide"</p>
-                    <p className="text-xs text-muted-foreground mt-1">5 hours ago</p>
-                  </div>
-                </div>
+          
+          <div className="flex gap-2 animate-in fade-in slide-in-from-right-4 duration-500">
+            <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted/50 bg-background shadow-sm border border-border/50 transition-transform hover:scale-105 active:scale-95">
+              <Bell className="w-5 h-5 text-foreground/80" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-background animate-pulse" />
+            </Button>
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted/50 bg-background shadow-sm border border-border/50 transition-transform hover:scale-105 active:scale-95 overflow-hidden" onClick={() => setLocation('/profile')}>
+              <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center font-bold text-xs text-primary">
+                {auth.currentUser?.displayName?.charAt(0) || "U"}
               </div>
-            </DialogContent>
-          </Dialog>
+            </Button>
+          </div>
         </div>
         
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="flex gap-2 px-2 animate-in fade-in slide-in-from-top-4 duration-500 delay-100">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="Search questions, topics..." 
-              className="pl-9 h-10 rounded-xl bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20" 
+              placeholder="Search questions, notes, topics..." 
+              className="pl-12 h-12 rounded-2xl bg-muted/40 border-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-inner font-medium transition-all" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0 h-10 w-10 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm">
-                <SlidersHorizontal className="w-4 h-4 text-foreground/80" />
+              <Button variant="outline" size="icon" className="shrink-0 h-12 w-12 rounded-2xl border-none bg-muted/40 hover:bg-muted/60 shadow-sm transition-all hover:scale-105 active:scale-95">
+                <SlidersHorizontal className="w-5 h-5 text-foreground/80" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
-              <div className="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Sort By</div>
-              <DropdownMenuItem className="rounded-lg cursor-pointer">Most Recent</DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg cursor-pointer">Highest Upvotes</DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg cursor-pointer">Most Answers</DropdownMenuItem>
-              <div className="h-px bg-border/50 my-1.5" />
-              <div className="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Filter</div>
-              <DropdownMenuItem className="rounded-lg cursor-pointer">Has Attachments (Notes)</DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg cursor-pointer">Unanswered Only</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/40 bg-background/95 backdrop-blur-xl">
+              <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Sort By</div>
+              <DropdownMenuItem className="rounded-xl cursor-pointer font-medium focus:bg-primary/10 focus:text-primary py-2.5">Most Recent</DropdownMenuItem>
+              <DropdownMenuItem className="rounded-xl cursor-pointer font-medium focus:bg-primary/10 focus:text-primary py-2.5">Highest Upvotes</DropdownMenuItem>
+              <DropdownMenuItem className="rounded-xl cursor-pointer font-medium focus:bg-primary/10 focus:text-primary py-2.5">Most Answers</DropdownMenuItem>
+              <div className="h-px bg-border/50 my-2" />
+              <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Filter</div>
+              <DropdownMenuItem className="rounded-xl cursor-pointer font-medium focus:bg-primary/10 focus:text-primary py-2.5">Has Attachments (Notes)</DropdownMenuItem>
+              <DropdownMenuItem className="rounded-xl cursor-pointer font-medium focus:bg-primary/10 focus:text-primary py-2.5">Unanswered Only</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      {/* Categories */}
-      <div className="bg-background pb-2">
-        <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar mb-1">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="shrink-0 h-9 rounded-xl border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800"
-            onClick={() => setLocation("/flashcards")}
-          >
-            <Brain className="w-4 h-4 mr-2" /> Quick Review
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="shrink-0 h-9 rounded-xl border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
-            onClick={() => setLocation("/study-rooms")}
-          >
-            <Users className="w-4 h-4 mr-2" /> Study Rooms
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="shrink-0 h-9 rounded-xl border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-            onClick={() => setLocation("/leaderboard")}
-          >
-            <Trophy className="w-4 h-4 mr-2 text-amber-500" /> Leaderboard
-          </Button>
+      <div className="flex-1 overflow-y-auto pb-32">
+        <div className="bg-background pt-4 pb-2 border-b border-border/30 sticky top-0 z-10">
+          <div className="px-4 flex gap-3 overflow-x-auto no-scrollbar mb-4 animate-in fade-in slide-in-from-right-8 duration-500 delay-150">
+            <Button 
+              variant="outline" 
+              className="shrink-0 h-11 rounded-2xl border-none bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 hover:text-purple-800 shadow-sm font-bold transition-all hover:scale-105"
+              onClick={() => setLocation("/flashcards")}
+            >
+              <Brain className="w-5 h-5 mr-2" /> Quick Review
+            </Button>
+            <Button 
+              variant="outline" 
+              className="shrink-0 h-11 rounded-2xl border-none bg-green-500/10 text-green-700 hover:bg-green-500/20 hover:text-green-800 shadow-sm font-bold transition-all hover:scale-105"
+              onClick={() => setLocation("/study-rooms")}
+            >
+              <Users className="w-5 h-5 mr-2" /> Study Rooms
+            </Button>
+            <Button 
+              variant="outline" 
+              className="shrink-0 h-11 rounded-2xl border-none bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 hover:text-blue-800 shadow-sm font-bold transition-all hover:scale-105"
+              onClick={() => setLocation("/ai-tutor")}
+            >
+              <Sparkles className="w-5 h-5 mr-2 text-blue-600" /> AI Tutor
+            </Button>
+            <Button 
+              variant="outline" 
+              className="shrink-0 h-11 rounded-2xl border-none bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 hover:text-amber-800 shadow-sm font-bold transition-all hover:scale-105"
+              onClick={() => setLocation("/leaderboard")}
+            >
+              <Trophy className="w-5 h-5 mr-2 text-amber-600" /> Leaderboard
+            </Button>
+          </div>
+
+          <ScrollArea className="w-full whitespace-nowrap animate-in fade-in duration-500 delay-200">
+            <div className="flex w-max space-x-2 pb-3 px-6">
+              {CATEGORIES.map((cat) => (
+                <Badge 
+                  key={cat} 
+                  variant={selectedCategory === cat ? "default" : "secondary"}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-[13px] font-bold cursor-pointer transition-all duration-300 ${selectedCategory === cat ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30 scale-105 hover:bg-primary/90' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'}`}
+                >
+                  {cat}
+                </Badge>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex w-max space-x-2 pb-2 px-6">
-            {CATEGORIES.map((cat) => (
-              <Badge 
-                key={cat} 
-                variant={selectedCategory === cat ? "default" : "secondary"}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all duration-300 ${selectedCategory === cat ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105' : 'bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground'}`}
-              >
-                {cat}
-              </Badge>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-
       {/* Feed */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-32">
+      <div className="px-4 py-4 space-y-4">
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-card p-4 rounded-2xl border border-border/50 space-y-4 shadow-sm">
+              <div key={i} className="bg-background/60 backdrop-blur-sm p-5 rounded-3xl border border-border/40 space-y-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="w-10 h-10 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+                  <div className="w-10 h-10 bg-muted/50 rounded-full animate-pulse" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-muted/50 rounded animate-pulse w-1/4" />
+                    <div className="h-3 bg-muted/50 rounded animate-pulse w-1/5" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                </div>
-                <div className="pt-3 flex gap-3 border-t border-border/30">
-                  <Skeleton className="h-8 w-16 rounded-lg" />
-                  <Skeleton className="h-8 w-16 rounded-lg" />
+                  <div className="h-5 bg-muted/50 rounded animate-pulse w-3/4" />
+                  <div className="h-4 bg-muted/50 rounded animate-pulse w-full" />
+                  <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6" />
                 </div>
               </div>
             ))}
@@ -368,6 +346,7 @@ export default function Home() {
         )}
         
         <div className="h-4" /> {/* Spacer */}
+      </div>
       </div>
     </div>
   );

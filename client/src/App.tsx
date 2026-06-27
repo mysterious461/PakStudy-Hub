@@ -19,6 +19,7 @@ import Settings from "@/pages/Settings";
 import Flashcards from "@/pages/Flashcards";
 import StudyRooms from "@/pages/StudyRooms";
 import Leaderboard from "@/pages/Leaderboard";
+import AiTutor from "@/pages/AiTutor";
 
 function Router() {
   return (
@@ -39,6 +40,7 @@ function Router() {
         <Route path="/flashcards" component={Flashcards} />
         <Route path="/study-rooms" component={StudyRooms} />
         <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/ai-tutor" component={AiTutor} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>
