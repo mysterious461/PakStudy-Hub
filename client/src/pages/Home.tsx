@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users, Trophy } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users, Trophy, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
@@ -120,6 +120,10 @@ export default function Home() {
           </div>
           
           <div className="flex gap-2 animate-in fade-in slide-in-from-right-4 duration-500">
+            <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted/50 bg-background shadow-sm border border-border/50 transition-transform hover:scale-105 active:scale-95" onClick={() => setLocation('/messages')}>
+              <MessageSquare className="w-5 h-5 text-foreground/80" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
+            </Button>
             <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted/50 bg-background shadow-sm border border-border/50 transition-transform hover:scale-105 active:scale-95">
               <Bell className="w-5 h-5 text-foreground/80" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-background animate-pulse" />

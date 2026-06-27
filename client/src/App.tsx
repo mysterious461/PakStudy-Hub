@@ -20,6 +20,9 @@ import Flashcards from "@/pages/Flashcards";
 import StudyRooms from "@/pages/StudyRooms";
 import Leaderboard from "@/pages/Leaderboard";
 import AiTutor from "@/pages/AiTutor";
+import AdminSupport from "@/pages/AdminSupport";
+import MessagesList from "@/pages/MessagesList";
+import DirectChat from "@/pages/DirectChat";
 
 function Router() {
   return (
@@ -41,6 +44,9 @@ function Router() {
         <Route path="/study-rooms" component={StudyRooms} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/ai-tutor" component={AiTutor} />
+        <Route path="/admin-support" component={AdminSupport} />
+        <Route path="/messages" component={MessagesList} />
+        <Route path="/chat/:id" component={DirectChat} />
         <Route component={NotFound} />
       </Switch>
     </MobileShell>
