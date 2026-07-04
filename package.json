@@ -12,7 +12,7 @@
     "build": "node ./node_modules/tsx/dist/cli.mjs script/build.ts",
     "start": "node dist/index.cjs",
     "check": "node ./node_modules/typescript/bin/tsc --noEmit",
-    "test": "node --import tsx --test \"server/**/*.test.ts\""
+    "test": "node script/test.mjs"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^8.3.1",
