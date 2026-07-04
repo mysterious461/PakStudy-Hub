@@ -1,0 +1,67 @@
+name: Deploy Cloud Run Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: Google Cloud region
+        default: us-central1
+        required: true
+      service:
+        description: Cloud Run service name
+        default: pakstudy-hub-api
+        required: true
+
+jobs:
+  deploy-cloud-run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: pakstudy-hub-d418b
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy "${{ inputs.service }}" \
+            --source . \
+            --project pakstudy-hub-d418b \
+            --region "${{ inputs.region }}" \
+            --allow-unauthenticated \
+            --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app,PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
+
+      - name: Show service URL
+        run: |
+          gcloud run services describe "${{ inputs.service }}" \
+            --project pakstudy-hub-d418b \
+            --region "${{ inputs.region }}" \
+            --format='value(status.url)'

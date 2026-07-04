@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, Share2, Bookmark, CheckCircle, Brain } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Flashcards() {
   const [, setLocation] = useLocation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const cards = [
+  const [cards, setCards] = useState<any[]>([
     {
       id: 1,
       subject: "Computer Science",
@@ -34,7 +35,16 @@ export default function Flashcards() {
       back: "2e^(2x) - Using the chain rule: d/dx[e^u] = e^u * du/dx, where u = 2x and du/dx = 2.",
       level: "Intermediate"
     }
-  ];
+  ]);
+
+  useEffect(() => {
+    apiRequest("GET", "/api/flashcards")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.length > 0) setCards(data);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const nextCard = () => {
     setIsFlipped(false);

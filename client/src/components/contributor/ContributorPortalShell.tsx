@@ -1,0 +1,79 @@
+import React from "react";
+import { BookOpen, LayoutDashboard, LogIn, UploadCloud, User, Files } from "lucide-react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/firebase";
+import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
+
+type ContributorPortalShellProps = {
+  children: React.ReactNode;
+};
+
+export function ContributorPortalShell({ children }: ContributorPortalShellProps) {
+  const [, setLocation] = useLocation();
+  const user = auth.currentUser;
+
+  return (
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950 text-foreground">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <button className="flex items-center gap-3 text-left" onClick={() => setLocation("/contribute")}>
+            <div className="h-11 w-11 rounded-2xl border border-border/50 bg-white p-1.5 shadow-sm">
+              <img src={logoImage} alt="PakStudy Hub" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <p className="text-base font-black leading-tight">PakStudy Hub</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Contributor Portal</p>
+            </div>
+          </button>
+
+          <nav className="hidden items-center gap-1 md:flex">
+            <NavButton icon={BookOpen} label="Contribute" onClick={() => setLocation("/contribute")} />
+            <NavButton icon={Files} label="My Uploads" onClick={() => setLocation(user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads")} />
+            <NavButton icon={LayoutDashboard} label="Dashboard" onClick={() => setLocation(user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")} />
+          </nav>
+
+          <Button
+            variant={user ? "outline" : "default"}
+            className="rounded-2xl font-bold"
+            onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/contributors/dashboard")}
+          >
+            {user ? <User className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}
+            <span className="hidden sm:inline">{user ? "Profile" : "Sign In / Sign Up"}</span>
+            <span className="sm:hidden">{user ? "Profile" : "Sign In"}</span>
+          </Button>
+        </div>
+
+        <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:hidden">
+          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation("/contribute")}>Contribute</Button>
+          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads")}>My Uploads</Button>
+          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")}>Dashboard</Button>
+        </div>
+      </header>
+
+      <main>{children}</main>
+
+      <footer className="border-t border-border/60 bg-background">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm text-muted-foreground sm:grid-cols-4 sm:px-6">
+          <FooterLink label="About PakStudy Hub" />
+          <FooterLink label="Contributor Guidelines" />
+          <FooterLink label="Contact" />
+          <FooterLink label="Privacy Policy" />
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function NavButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
+  return (
+    <Button variant="ghost" className="rounded-2xl font-semibold" onClick={onClick}>
+      <Icon className="mr-2 h-4 w-4" />
+      {label}
+    </Button>
+  );
+}
+
+function FooterLink({ label }: { label: string }) {
+  return <button className="text-left font-semibold hover:text-primary">{label}</button>;
+}

@@ -9,11 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight, CreditCard, Plus, Moon, Sun, Trophy } from "lucide-react";
+import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight, CreditCard, Plus, Moon, Sun, UploadCloud, ShieldCheck } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
@@ -36,6 +37,7 @@ export default function Profile() {
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCard, setTopUpCard] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const isAdminUser = profileData?.role === "Admin" || profileData?.role === "Moderator";
 
   useEffect(() => {
     // Check initial dark mode state
@@ -58,6 +60,8 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user) return;
+
+    void apiRequest("POST", "/api/users/me").catch((error) => console.error("Could not sync backend user:", error));
 
     const unsubscribe = onSnapshot(doc(db, "users", user.uid), (doc) => {
       if (doc.exists()) {
@@ -108,6 +112,14 @@ export default function Profile() {
           bio: formData.bio,
           subjects: formData.subjects
         });
+        await apiRequest("PATCH", "/api/users/me/profile", {
+          name: formData.displayName,
+          grade: formData.grade,
+          track: formData.track,
+          university: formData.university,
+          bio: formData.bio,
+          subjects: formData.subjects,
+        });
       }
       setIsEditing(false);
       toast({
@@ -123,14 +135,25 @@ export default function Profile() {
     }
   };
 
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
     toast({ title: "Processing Top Up", description: "Securely adding funds via App Pay..." });
-    setTimeout(() => {
-      toast({ title: "Top Up Successful", description: `Rs. ${topUpAmount} added to your wallet.` });
+    try {
+      if (!user) throw new Error("Please sign in first.");
+      const res = await apiRequest("POST", "/api/wallet/top-up", {
+        amount: Number(topUpAmount),
+      });
+      const payment = await res.json();
+      if (payment.checkoutUrl) {
+        window.location.href = payment.checkoutUrl;
+        return;
+      }
+      toast({ title: "Payment Started", description: `Complete the secure payment to add Rs. ${topUpAmount}.` });
       setIsTopUpOpen(false);
       setTopUpAmount("");
       setTopUpCard("");
-    }, 2000);
+    } catch (error: any) {
+      toast({ title: "Top Up Failed", description: error.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -466,6 +489,21 @@ export default function Profile() {
           </Card>
 
           <Card 
+            className="border-border/50 shadow-sm cursor-pointer hover:bg-primary/5 transition-all active:scale-[0.98]"
+            onClick={() => setLocation("/contribute")}
+          >
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                <UploadCloud className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-sm">Contributor Portal</h4>
+                <p className="text-xs text-muted-foreground">Upload resources for pre-launch review</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
             className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
             onClick={() => setLocation("/settings")}
           >
@@ -479,21 +517,22 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Mock Admin Link for demonstration */}
-          <Card 
-            className="border-border/50 shadow-sm cursor-pointer hover:bg-red-500/10 transition-all active:scale-[0.98] mt-4 border-red-500/30"
-            onClick={() => setLocation("/admin")}
-          >
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                <Settings className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-sm text-red-600">Admin Dashboard</h4>
-                <p className="text-xs text-red-600/70">Content moderation & management</p>
-              </div>
-            </CardContent>
-          </Card>
+          {isAdminUser && (
+            <Card 
+              className="border-border/50 shadow-sm cursor-pointer hover:bg-red-500/10 transition-all active:scale-[0.98] mt-4 border-red-500/30"
+              onClick={() => setLocation("/admin")}
+            >
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm text-red-600">Admin Dashboard</h4>
+                  <p className="text-xs text-red-600/70">Content moderation & management</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card 
             className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"

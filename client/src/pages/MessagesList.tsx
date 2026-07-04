@@ -1,19 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, MessageSquare, ShieldCheck, Search, Users, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function MessagesList() {
   const [, setLocation] = useLocation();
+  const [chats, setChats] = useState<any[]>([]);
 
-  const chats = [
-    { id: "Ali Khan", lastMessage: "Yes, I have those notes. I'll send them.", time: "10:42 AM", unread: 2, online: true },
-    { id: "Sara M.", lastMessage: "Thanks for the help with the lab!", time: "Yesterday", unread: 0, online: false },
-    { id: "Omer F.", lastMessage: "Are we still doing the group study later?", time: "Mon", unread: 0, online: true },
-  ];
+  useEffect(() => {
+    apiRequest("GET", "/api/messages")
+      .then((res) => res.json())
+      .then(setChats)
+      .catch(() => setChats([]));
+  }, []);
 
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
@@ -77,15 +80,15 @@ export default function MessagesList() {
                    <div className="flex-1 min-w-0">
                      <div className="flex justify-between items-baseline mb-1">
                        <h3 className="font-bold text-slate-900 truncate">{chat.id}</h3>
-                       <span className="text-[10px] font-medium text-slate-400 shrink-0 ml-2">{chat.time}</span>
+                       <span className="text-[10px] font-medium text-slate-400 shrink-0 ml-2">{new Date(chat.updatedAt).toLocaleDateString()}</span>
                      </div>
-                     <p className={`text-xs truncate ${chat.unread ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
+                     <p className={`text-xs truncate ${chat.unreadCount ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
                        {chat.lastMessage}
                      </p>
                    </div>
-                   {chat.unread > 0 && (
+                   {chat.unreadCount > 0 && (
                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                       <span className="text-[10px] font-bold text-white">{chat.unread}</span>
+                       <span className="text-[10px] font-bold text-white">{chat.unreadCount}</span>
                      </div>
                    )}
                  </div>

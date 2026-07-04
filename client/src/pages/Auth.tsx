@@ -5,16 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock } from "lucide-react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const getReturnTo = () => {
+    const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+    return returnTo?.startsWith("/") ? returnTo : "/home";
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +31,8 @@ export default function Auth() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      setLocation("/home");
+      await apiRequest("POST", "/api/users/me");
+      setLocation(getReturnTo());
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -51,19 +57,11 @@ export default function Auth() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user to Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: name,
-        email: email,
-        role: "Student", // Default role
-        university: "", // Placeholder
-        subjects: [], // Placeholder
-        grade: "Grade 12",
-        track: "Pre-Engineering"
-      });
+      await updateProfile(user, { displayName: name });
+      await user.getIdToken(true);
+      await apiRequest("POST", "/api/users/me");
 
-      setLocation("/home");
+      setLocation(getReturnTo());
     } catch (error: any) {
       toast({
         title: "Registration Failed",

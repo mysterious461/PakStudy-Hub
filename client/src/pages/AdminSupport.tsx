@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminSupport() {
   const [, setLocation] = useLocation();
@@ -19,7 +20,7 @@ export default function AdminSupport() {
     }
   ]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) return;
     
     const newMsg = {
@@ -33,16 +34,26 @@ export default function AdminSupport() {
     setMessages([...messages, newMsg]);
     setMessage("");
     
-    // Simulate admin response
-    setTimeout(() => {
+    try {
+      const res = await apiRequest("POST", "/api/support/messages", { message });
+      const ticket = await res.json();
+      const latest = ticket.messages[ticket.messages.length - 1];
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: "admin",
-        text: "Thanks for reaching out! An admin will review your request and get back to you shortly. This is an automated mockup response.",
+        text: latest.text,
         time: "Just now",
         read: true
       }]);
-    }, 1500);
+    } catch (error: any) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: "admin",
+        text: error.message || "Support is unavailable right now.",
+        time: "Just now",
+        read: true
+      }]);
+    }
   };
 
   return (

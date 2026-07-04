@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AiTutor() {
   const [, setLocation] = useLocation();
@@ -18,7 +19,7 @@ export default function AiTutor() {
     }
   ]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) return;
     
     // Add user message
@@ -32,15 +33,23 @@ export default function AiTutor() {
     setMessages([...messages, newMsg]);
     setMessage("");
     
-    // Simulate AI typing and response
-    setTimeout(() => {
+    try {
+      const res = await apiRequest("POST", "/api/ai-tutor", { question: message });
+      const data = await res.json();
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: "ai",
-        text: "I'm a prototype AI in this mockup! In the real app, I'd analyze that based on top-tier educational models to give you step-by-step guidance.",
+        text: data.answer,
         time: "Just now"
       }]);
-    }, 1500);
+    } catch (error: any) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: "ai",
+        text: error.message || "I couldn't process that just now.",
+        time: "Just now"
+      }]);
+    }
   };
 
   return (

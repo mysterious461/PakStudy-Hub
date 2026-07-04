@@ -1,27 +1,48 @@
-import React, { useState } from "react";
-import { ArrowLeft, ShieldAlert, Users, FileText, CheckCircle, Trash2, Ban } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, ShieldAlert, Users, CheckCircle, Trash2, UploadCloud, FileCheck2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [reports, setReports] = useState([
-    { id: 1, type: "Spam", content: "Check out this free money link...", user: "User_8123", status: "pending", date: "2 hours ago" },
-    { id: 2, type: "Inappropriate", content: "Offensive comment text...", user: "AngryStudent99", status: "pending", date: "5 hours ago" },
-    { id: 3, type: "Plagiarism", content: "Copy pasted entire wikipedia article...", user: "LazyBoy", status: "resolved", date: "1 day ago" }
-  ]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [stats, setStats] = useState({ users: 0, pendingReports: 0 });
 
-  const handleAction = (id: number, action: string) => {
-    setReports(reports.map(r => r.id === id ? { ...r, status: "resolved" } : r));
-    toast({
-      title: "Action taken",
-      description: `Report has been ${action}.`,
-    });
+  useEffect(() => {
+    const loadAdmin = async () => {
+      try {
+        const [reportsRes, statsRes] = await Promise.all([
+          apiRequest("GET", "/api/admin/reports"),
+          apiRequest("GET", "/api/admin/stats"),
+        ]);
+        if (reportsRes.ok) setReports(await reportsRes.json());
+        if (statsRes.ok) setStats(await statsRes.json());
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadAdmin();
+  }, []);
+
+  const handleAction = async (id: string, action: string) => {
+    try {
+      const res = await apiRequest("PATCH", `/api/admin/reports/${id}`, { action });
+      const updated = await res.json();
+      setReports(reports.map(r => r.id === id ? updated : r));
+      toast({
+        title: "Action taken",
+        description: `Report has been ${action}.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Action failed", description: error.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -45,7 +66,7 @@ export default function Admin() {
                 <Users className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-2xl font-bold">2,405</p>
+                <p className="text-2xl font-bold">{stats.users}</p>
                 <p className="text-xs text-muted-foreground font-medium">Total Users</p>
               </div>
             </CardContent>
@@ -56,12 +77,42 @@ export default function Admin() {
                 <ShieldAlert className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{reports.filter(r => r.status === "pending").length}</p>
+                <p className="text-2xl font-bold">{stats.pendingReports || reports.filter(r => r.status === "pending").length}</p>
                 <p className="text-xs text-muted-foreground font-medium">Pending Reports</p>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <UploadCloud className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-sm">Launch Resource Upload</p>
+              <p className="text-xs text-muted-foreground">Add curated files to Firebase Storage and Firestore.</p>
+            </div>
+            <Button size="sm" className="font-semibold" onClick={() => setLocation("/admin-upload")}>
+              Open
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-500/10 text-green-600 flex items-center justify-center shrink-0">
+              <FileCheck2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-sm">Contributor Review Queue</p>
+              <p className="text-xs text-muted-foreground">Approve, reject, or request changes for student uploads.</p>
+            </div>
+            <Button size="sm" variant="outline" className="font-semibold" onClick={() => setLocation("/admin/resources/review")}>
+              Review
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Tabs */}
         <Tabs defaultValue="reports" className="w-full">
@@ -78,11 +129,11 @@ export default function Admin() {
                     <Badge variant={report.status === 'resolved' ? "secondary" : "destructive"} className="text-[10px] uppercase font-bold">
                       {report.type}
                     </Badge>
-                    <span className="text-xs text-muted-foreground font-medium">{report.date}</span>
+                    <span className="text-xs text-muted-foreground font-medium">{new Date(report.createdAt).toLocaleDateString()}</span>
                   </div>
-                  <p className="text-sm font-medium mb-1">Reported User: <span className="text-primary">{report.user}</span></p>
+                  <p className="text-sm font-medium mb-1">Reported User: <span className="text-primary">{report.reportedUserId || "Unknown"}</span></p>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-4 p-2 bg-muted/30 rounded-lg italic">
-                    "{report.content}"
+                    "{report.reason}"
                   </p>
                   
                   {report.status === "pending" ? (

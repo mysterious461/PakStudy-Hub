@@ -4,8 +4,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send, ArrowUp, MessageSquare, CheckCircle } from "lucide-react";
-import { doc, onSnapshot, collection, addDoc, serverTimestamp, updateDoc, increment, query, orderBy } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Download, CreditCard, Banknote, Landmark, Share2, Facebook, Twitter, Link as LinkIcon, Bookmark } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Star, StarHalf } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function QuestionDetail() {
   const [, params] = useRoute("/question/:id");
@@ -40,13 +40,26 @@ export default function QuestionDetail() {
       title: "Payment Processing",
       description: "Redirecting to payment gateway...",
     });
-    setTimeout(() => {
+    if (!auth.currentUser || !question?.id) {
+      toast({ title: "Please sign in to purchase notes", variant: "destructive" });
+      return;
+    }
+    apiRequest("POST", "/api/notes/purchase", {
+      noteId: question.id,
+    }).then(async (res) => {
+      const payment = await res.json();
+      if (payment.checkoutUrl) {
+        window.location.href = payment.checkoutUrl;
+        return;
+      }
       toast({
-        title: "Purchase Successful",
-        description: "Notes have been added to your study materials.",
+        title: "Payment Started",
+        description: "Complete the secure payment to unlock these notes.",
       });
       setIsPaymentOpen(false);
-    }, 2000);
+    }).catch((error: any) => {
+      toast({ title: "Purchase Failed", description: error.message, variant: "destructive" });
+    });
   };
 
   const handleShare = (platform: string, postId: string) => {
@@ -77,72 +90,53 @@ export default function QuestionDetail() {
   useEffect(() => {
     if (!params?.id) return;
 
-    // Fetch question
-    const qUnsubscribe = onSnapshot(doc(db, "questions", params.id), (doc) => {
-      if (doc.exists()) {
-        setQuestion({ id: doc.id, ...doc.data() });
+    const loadQuestion = async () => {
+      try {
+        const [questionRes, answersRes] = await Promise.all([
+          fetch(`/api/questions/${params.id}`, { credentials: "include" }),
+          fetch(`/api/questions/${params.id}/answers`, { credentials: "include" }),
+        ]);
+        if (!questionRes.ok) throw new Error(await questionRes.text());
+        if (!answersRes.ok) throw new Error(await answersRes.text());
+        setQuestion(await questionRes.json());
+        setAnswers(await answersRes.json());
+      } catch (error: any) {
+        console.error("Error fetching question:", error);
+        toast({ title: "Error loading question", description: error.message, variant: "destructive" });
       }
-    }, (error) => {
-      console.error("Error fetching question:", error);
-      toast({ title: "Error loading question", variant: "destructive" });
-    });
-
-    // Fetch answers
-    const answersQuery = query(
-      collection(db, "questions", params.id, "answers"),
-      orderBy("createdAt", "asc")
-    );
-    const aUnsubscribe = onSnapshot(answersQuery, (snapshot) => {
-      const fetchedAnswers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setAnswers(fetchedAnswers);
-    }, (error) => {
-      console.error("Error fetching answers:", error);
-    });
-
-    return () => {
-      qUnsubscribe();
-      aUnsubscribe();
     };
+
+    void loadQuestion();
   }, [params?.id, toast]);
 
   const handleUpvote = async () => {
     if (!params?.id) return;
     try {
-      await updateDoc(doc(db, "questions", params.id), {
-        upvotes: increment(1)
-      });
+      if (!auth.currentUser) {
+        toast({ title: "Please sign in to upvote", variant: "destructive" });
+        return;
+      }
+      const res = await apiRequest("POST", `/api/questions/${params.id}/upvote`);
+      setQuestion(await res.json());
     } catch (error) {
       console.error("Error upvoting:", error);
     }
   };
 
   const handleMarkCorrect = async (answerId: string) => {
-    if (!params?.id || question?.userId !== auth.currentUser?.uid) return;
+    const user = auth.currentUser;
+    if (!params?.id || !user || question?.userId !== user.uid) return;
     
     try {
       // Unmark any previously correct answer
       const prevCorrect = answers.find(a => a.isCorrect);
       if (prevCorrect) {
-        await updateDoc(doc(db, "questions", params.id, "answers", prevCorrect.id), {
-          isCorrect: false
-        });
+        setAnswers(current => current.map(a => a.id === prevCorrect.id ? { ...a, isCorrect: false } : a));
       }
 
-      // Mark the new one as correct
-      await updateDoc(doc(db, "questions", params.id, "answers", answerId), {
-        isCorrect: true
-      });
-      
-      // Give points to the user who answered
-      const answer = answers.find(a => a.id === answerId);
-      if (answer && answer.userId) {
-        await updateDoc(doc(db, "users", answer.userId), {
-          reputation: increment(15)
-        }).catch(err => console.error("Could not update reputation:", err));
-      }
+      const res = await apiRequest("POST", `/api/questions/${params.id}/answers/${answerId}/correct`);
+      const updated = await res.json();
+      setAnswers(current => current.map(a => a.id === answerId ? updated : a));
       
       toast({ title: "Answer marked as correct! (+15 reputation awarded)" });
     } catch (error) {
@@ -156,16 +150,12 @@ export default function QuestionDetail() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "questions", params.id, "answers"), {
+      const res = await apiRequest("POST", `/api/questions/${params.id}/answers`, {
         content: reply,
-        userId: auth.currentUser?.uid,
-        userName: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0],
-        createdAt: serverTimestamp()
       });
-
-      await updateDoc(doc(db, "questions", params.id), {
-        commentsCount: increment(1)
-      });
+      const answer = await res.json();
+      setAnswers(current => [...current, answer]);
+      setQuestion((current: any) => current ? { ...current, commentsCount: (current.commentsCount || 0) + 1 } : current);
 
       setReply("");
       toast({ title: "Reply posted successfully" });

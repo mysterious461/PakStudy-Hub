@@ -1,39 +1,42 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Send, Paperclip, MoreVertical, Check, CheckCheck, User, X } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { auth } from "@/lib/firebase";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function DirectChat() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/chat/:id");
-  const userName = params?.id || "Student";
+  const conversationId = params?.id || "";
+  const recipientId = conversationId.includes("__")
+    ? conversationId.split("__").find((id) => id !== auth.currentUser?.uid) || conversationId
+    : conversationId;
+  const userName = recipientId || "Student";
   
   const [message, setMessage] = useState("");
   const [requestStatus, setRequestStatus] = useState<"pending" | "accepted" | "rejected">("pending");
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "user",
-      text: `Hi, I saw your question about Data Structures. I can help if you want!`,
-      time: "10:00 AM",
-      read: true
-    }
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
 
-  const handleSend = () => {
+  useEffect(() => {
+    if (!conversationId) return;
+    apiRequest("GET", `/api/messages/${conversationId}`)
+      .then((res) => res.json())
+      .then(setMessages)
+      .catch(() => setMessages([]));
+  }, [conversationId]);
+
+  const handleSend = async () => {
     if (!message.trim()) return;
-    
-    const newMsg = {
-      id: Date.now(),
-      sender: "user",
+
+    const res = await apiRequest("POST", "/api/messages", {
+      recipientId,
       text: message,
-      time: "Just now",
-      read: false
-    };
-    
+    });
+    const newMsg = await res.json();
     setMessages([...messages, newMsg]);
     setMessage("");
   };
@@ -98,24 +101,24 @@ export default function DirectChat() {
         </div>
         <div className={`space-y-6 pb-24 ${requestStatus !== 'accepted' ? 'opacity-50 pointer-events-none' : ''}`}>
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex gap-3 ${msg.sender === "user" ? "flex-row-reverse" : ""}`}>
-              {msg.sender === "other" && (
+            <div key={msg.id} className={`flex gap-3 ${msg.senderId === auth.currentUser?.uid ? "flex-row-reverse" : ""}`}>
+              {msg.senderId !== auth.currentUser?.uid && (
                 <Avatar className="w-8 h-8 shrink-0">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs">{userName.charAt(0)}</AvatarFallback>
                 </Avatar>
               )}
               
-              <div className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"} max-w-[75%]`}>
+              <div className={`flex flex-col ${msg.senderId === auth.currentUser?.uid ? "items-end" : "items-start"} max-w-[75%]`}>
                 <div className={`p-3.5 rounded-2xl shadow-sm text-[14px] leading-relaxed ${
-                  msg.sender === "user" 
+                  msg.senderId === auth.currentUser?.uid 
                     ? "bg-primary text-primary-foreground rounded-tr-sm" 
                     : "bg-white text-slate-800 rounded-tl-sm border border-slate-100"
                 }`}>
                   {msg.text}
                 </div>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-[10px] text-slate-400 font-medium">{msg.time}</span>
-                  {msg.sender === "user" && (
+                  <span className="text-[10px] text-slate-400 font-medium">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  {msg.senderId === auth.currentUser?.uid && (
                     msg.read ? <CheckCheck className="w-3 h-3 text-blue-500" /> : <Check className="w-3 h-3 text-slate-400" />
                   )}
                 </div>

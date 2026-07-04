@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +15,8 @@ import QuestionDetail from "@/pages/QuestionDetail";
 import Sell from "@/pages/Sell";
 import Library from "@/pages/Library";
 import Admin from "@/pages/Admin";
+import AdminUpload from "@/pages/AdminUpload";
+import AdminResourceReview from "@/pages/AdminResourceReview";
 import Achievements from "@/pages/Achievements";
 import Settings from "@/pages/Settings";
 import Flashcards from "@/pages/Flashcards";
@@ -23,8 +26,36 @@ import AiTutor from "@/pages/AiTutor";
 import AdminSupport from "@/pages/AdminSupport";
 import MessagesList from "@/pages/MessagesList";
 import DirectChat from "@/pages/DirectChat";
+import ContributorLanding from "@/pages/ContributorLanding";
+import ContributorDashboard from "@/pages/ContributorDashboard";
+import ContributorUpload from "@/pages/ContributorUpload";
+import ContributorUploads from "@/pages/ContributorUploads";
 
 function Router() {
+  const [location] = useLocation();
+  const isContributorPortal = location === "/contribute" || location.startsWith("/contributors");
+
+  if (location.startsWith("/auth?")) {
+    return (
+      <MobileShell>
+        <Auth />
+      </MobileShell>
+    );
+  }
+
+  if (isContributorPortal) {
+    return (
+      <Switch>
+        <Route path="/contribute" component={ContributorLanding} />
+        <Route path="/contributors" component={ContributorLanding} />
+        <Route path="/contributors/dashboard" component={ContributorDashboard} />
+        <Route path="/contributors/upload" component={ContributorUpload} />
+        <Route path="/contributors/uploads" component={ContributorUploads} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
   return (
     <MobileShell>
       <Switch>
@@ -38,6 +69,11 @@ function Router() {
         <Route path="/library" component={Library} />
         <Route path="/question/:id" component={QuestionDetail} />
         <Route path="/admin" component={Admin} />
+        <Route path="/admin-upload" component={AdminUpload} />
+        <Route path="/admin/resources/review" component={AdminResourceReview} />
+        <Route path="/contributors/dashboard" component={ContributorDashboard} />
+        <Route path="/contributors/upload" component={ContributorUpload} />
+        <Route path="/contributors/uploads" component={ContributorUploads} />
         <Route path="/achievements" component={Achievements} />
         <Route path="/settings" component={Settings} />
         <Route path="/flashcards" component={Flashcards} />

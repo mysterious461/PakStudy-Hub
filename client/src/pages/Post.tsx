@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { ImagePlus, X, FileText, Plus, EyeOff, Mic } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { EDUCATION_HIERARCHY, UNIVERSITIES } from "@/lib/educationData";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Post() {
   const [, setLocation] = useLocation();
@@ -58,12 +58,9 @@ export default function Post() {
     setIsSubmittingCourse(true);
     try {
       if (auth.currentUser) {
-        await addDoc(collection(db, "pending_courses"), {
+        await apiRequest("POST", "/api/pending-courses", {
           ...courseData,
           university: finalUniversity,
-          userId: auth.currentUser.uid,
-          status: "pending",
-          createdAt: serverTimestamp()
         });
       }
       
@@ -105,15 +102,11 @@ export default function Post() {
 
     setIsLoading(true);
     try {
-      await addDoc(collection(db, "questions"), {
+      await apiRequest("POST", "/api/questions", {
         ...formData,
         subject: formData.course,
         university: formData.university || null,
-        userId: formData.isAnonymous ? "anonymous" : auth.currentUser?.uid,
-        userName: formData.isAnonymous ? "Anonymous Student" : (auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0]),
-        createdAt: serverTimestamp(),
-        upvotes: 0,
-        commentsCount: 0
+        notesPrice: formData.notesPrice ? Number(formData.notesPrice) : undefined,
       });
 
       toast({

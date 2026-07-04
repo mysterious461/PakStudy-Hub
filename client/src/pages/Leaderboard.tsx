@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,7 @@ import { ChevronLeft, Trophy, Flame, TrendingUp, Award, User, GraduationCap, Arr
 import { UNIVERSITIES } from "@/lib/educationData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-// Mock data for leaderboards
-const TOP_STUDENTS = [
-  { id: "1", name: "Ali Khan", uni: "NUST", points: 2450, streak: 14, avatar: "AK", rank: 1 },
-  { id: "2", name: "Fatima Ahmed", uni: "FAST-NU", points: 2100, streak: 8, avatar: "FA", rank: 2 },
-  { id: "3", name: "Zainab Malik", uni: "LUMS", points: 1950, streak: 21, avatar: "ZM", rank: 3 },
-  { id: "4", name: "Ahmed Raza", uni: "UET", points: 1820, streak: 5, avatar: "AR", rank: 4 },
-  { id: "5", name: "Aisha Tariq", uni: "PU", points: 1600, streak: 12, avatar: "AT", rank: 5 },
-  { id: "6", name: "Hassan Ali", uni: "COMSATS", points: 1450, streak: 3, avatar: "HA", rank: 6 },
-  { id: "7", name: "You", uni: "NUST", points: 850, streak: 2, avatar: "ME", rank: 42, isCurrentUser: true }
-];
+import { auth } from "@/lib/firebase";
 
 const UNIVERSITY_RANKINGS = [
   { rank: 1, name: "NUST", score: 15400, trend: "up" },
@@ -30,6 +20,23 @@ const UNIVERSITY_RANKINGS = [
 export default function Leaderboard() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("students");
+  const [topStudents, setTopStudents] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/leaderboard", { credentials: "include" })
+      .then((res) => res.ok ? res.json() : [])
+      .then((users) => setTopStudents(users.map((user: any, index: number) => ({
+        id: user.id,
+        name: user.name,
+        uni: user.university || "PakStudy",
+        points: user.reputation || 0,
+        streak: user.streak || 0,
+        avatar: user.name?.split(" ").map((part: string) => part[0]).join("").slice(0, 2).toUpperCase() || "ST",
+        rank: index + 1,
+        isCurrentUser: user.id === auth.currentUser?.uid,
+      }))))
+      .catch(() => setTopStudents([]));
+  }, []);
 
   return (
     <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
@@ -100,7 +107,7 @@ export default function Leaderboard() {
             </TabsList>
             
             <TabsContent value="students" className="space-y-3 mt-0 animate-in fade-in duration-500 slide-in-from-bottom-4">
-              {TOP_STUDENTS.map((student) => (
+              {topStudents.map((student) => (
                 <div 
                   key={student.id}
                   className={`flex items-center justify-between p-4 rounded-3xl border transition-all duration-300 hover:-translate-y-0.5 ${

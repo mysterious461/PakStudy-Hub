@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Users, MessageSquare, Clock, Video, Flame, Search, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,37 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function StudyRooms() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("FAST-NU");
+  const [rooms, setRooms] = useState<any[]>([]);
 
-  const rooms = [
-    { id: 1, title: "CS-101 Midterm Prep", uni: "FAST-NU", participants: 12, host: "Ali K.", timeRemaining: "45:00", isLive: true, tags: ["Computer Science", "Midterm"] },
-    { id: 2, title: "Physics Lab Report Help", uni: "NUST", participants: 4, host: "Sara M.", timeRemaining: "12:30", isLive: true, tags: ["Physics", "Lab"] },
-    { id: 3, title: "Calculus III Silent Study (Pomodoro)", uni: "LUMS", participants: 28, host: "Omer F.", timeRemaining: "25:00", isLive: true, tags: ["Math", "Pomodoro"] },
-    { id: 4, title: "DLD Past Papers Discussion", uni: "FAST-NU", participants: 8, host: "Hamza S.", timeRemaining: "05:15", isLive: true, tags: ["Engineering", "Past Papers"] }
-  ];
+  useEffect(() => {
+    const params = new URLSearchParams({ university: activeTab });
+    fetch(`/api/study-rooms?${params.toString()}`, { credentials: "include" })
+      .then((res) => res.ok ? res.json() : [])
+      .then(setRooms)
+      .catch(() => setRooms([]));
+  }, [activeTab]);
+
+  const handleJoin = async (roomId: string) => {
+    const res = await apiRequest("POST", `/api/study-rooms/${roomId}/join`);
+    const updated = await res.json();
+    setRooms((current) => current.map((room) => room.id === roomId ? updated : room));
+  };
+
+  const handleStartRoom = async () => {
+    const res = await apiRequest("POST", "/api/study-rooms", {
+      title: `${activeTab} Study Session`,
+      university: activeTab,
+      subject: "General Study",
+      tags: ["Study Room"],
+    });
+    const room = await res.json();
+    setRooms((current) => [room, ...current]);
+  };
 
   return (
     <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
@@ -89,12 +109,12 @@ export default function StudyRooms() {
             </span>
           </div>
 
-          {rooms.filter(r => r.uni === activeTab).length > 0 ? (
-            rooms.filter(r => r.uni === activeTab).map((room) => (
+          {rooms.length > 0 ? (
+            rooms.map((room) => (
               <div key={room.id} className="bg-background p-4 rounded-2xl border border-border/50 shadow-sm hover:shadow-md transition-all cursor-pointer group">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex gap-2 flex-wrap max-w-[70%]">
-                    {room.tags.map(tag => (
+                    {(room.tags || []).map((tag: string) => (
                       <Badge key={tag} variant="secondary" className="bg-muted text-muted-foreground text-[9px] uppercase tracking-wider font-bold">
                         {tag}
                       </Badge>
@@ -102,7 +122,7 @@ export default function StudyRooms() {
                   </div>
                   <div className="flex items-center gap-1 text-primary font-bold text-xs bg-primary/10 px-2 py-1 rounded-lg">
                     <Clock className="w-3 h-3" />
-                    {room.timeRemaining}
+                    Live
                   </div>
                 </div>
                 
@@ -112,7 +132,7 @@ export default function StudyRooms() {
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-2">
                       <Avatar className="w-6 h-6 border-2 border-background">
-                        <AvatarFallback className="text-[8px] bg-blue-100 text-blue-700">{room.host[0]}</AvatarFallback>
+                        <AvatarFallback className="text-[8px] bg-blue-100 text-blue-700">{room.hostName?.[0] || "S"}</AvatarFallback>
                       </Avatar>
                       <Avatar className="w-6 h-6 border-2 border-background">
                         <AvatarFallback className="text-[8px] bg-purple-100 text-purple-700">M</AvatarFallback>
@@ -122,10 +142,10 @@ export default function StudyRooms() {
                       </Avatar>
                     </div>
                     <span className="text-xs text-muted-foreground font-medium">
-                      <span className="text-foreground font-bold">{room.host}</span> +{room.participants - 1} studying
+                      <span className="text-foreground font-bold">{room.hostName}</span> +{Math.max((room.members || 1) - 1, 0)} studying
                     </span>
                   </div>
-                  <Button size="sm" className="rounded-xl h-8 px-4 font-bold shadow-sm shadow-primary/20 group-hover:bg-primary/90 transition-colors">
+                  <Button size="sm" className="rounded-xl h-8 px-4 font-bold shadow-sm shadow-primary/20 group-hover:bg-primary/90 transition-colors" onClick={() => handleJoin(room.id)}>
                     Join
                   </Button>
                 </div>
@@ -136,7 +156,7 @@ export default function StudyRooms() {
                <Video className="w-10 h-10 text-muted-foreground/30 mb-3" />
                <h3 className="font-bold text-sm mb-1">No active rooms</h3>
                <p className="text-xs text-muted-foreground mb-4">Be the first to start a study session at {activeTab}.</p>
-               <Button variant="outline" className="rounded-xl">Start a Room</Button>
+               <Button variant="outline" className="rounded-xl" onClick={handleStartRoom}>Start a Room</Button>
             </div>
           )}
         </div>

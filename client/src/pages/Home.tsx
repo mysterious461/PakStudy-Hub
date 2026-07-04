@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users, Trophy, Sparkles } from "lucide-react";
+import { Search, Bell, MessageSquare, ArrowUp, MoreHorizontal, Share2, Facebook, Twitter, Link as LinkIcon, FileText, Bookmark, SlidersHorizontal, Brain, Users, Trophy, Sparkles, UploadCloud } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,30 +25,54 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const toggleSave = (e: React.MouseEvent, postId: string) => {
+  const toggleSave = async (e: React.MouseEvent, postId: string) => {
     e.stopPropagation();
+    if (!auth.currentUser) {
+      toast({
+        title: "Guest Mode",
+        description: "Please log in to save questions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const previous = Boolean(savedPosts[postId]);
     setSavedPosts(prev => ({
       ...prev,
       [postId]: !prev[postId]
     }));
-    toast({
-      title: savedPosts[postId] ? "Removed from Library" : "Saved to Library",
-      description: savedPosts[postId] ? "Question removed from your saved items." : "Question saved to your library for later.",
-    });
+    try {
+      const res = await apiRequest("POST", `/api/questions/${postId}/save`);
+      const result = await res.json();
+      setSavedPosts(prev => ({ ...prev, [postId]: result.saved }));
+      toast({
+        title: result.saved ? "Saved to Library" : "Removed from Library",
+        description: result.saved ? "Question saved to your library for later." : "Question removed from your saved items.",
+      });
+    } catch (error: any) {
+      setSavedPosts(prev => ({ ...prev, [postId]: previous }));
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    }
   };
 
   useEffect(() => {
-    const q = query(collection(db, "questions"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedPosts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPosts(fetchedPosts);
-      setIsLoading(false);
-    });
+    const loadPosts = async () => {
+      try {
+        const res = await fetch("/api/questions", { credentials: "include" });
+        if (!res.ok) throw new Error(await res.text());
+        setPosts(await res.json());
+      } catch (error: any) {
+        toast({
+          title: "Could not load questions",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => unsubscribe();
+    void loadPosts();
   }, []);
 
   const handleUpvote = async (e: React.MouseEvent, postId: string) => {
@@ -63,10 +87,9 @@ export default function Home() {
     }
     
     try {
-      const postRef = doc(db, "questions", postId);
-      await updateDoc(postRef, {
-        upvotes: increment(1)
-      });
+      const res = await apiRequest("POST", `/api/questions/${postId}/upvote`);
+      const updated = await res.json();
+      setPosts((current) => current.map((post) => post.id === postId ? updated : post));
     } catch (error) {
       console.error("Error upvoting:", error);
     }
@@ -169,6 +192,13 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto pb-32">
         <div className="bg-background pt-4 pb-2 border-b border-border/30 sticky top-0 z-10">
           <div className="px-4 flex gap-3 overflow-x-auto no-scrollbar mb-4 animate-in fade-in slide-in-from-right-8 duration-500 delay-150">
+            <Button 
+              variant="outline" 
+              className="shrink-0 h-11 rounded-2xl border-none bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary shadow-sm font-bold transition-all hover:scale-105"
+              onClick={() => setLocation("/contribute")}
+            >
+              <UploadCloud className="w-5 h-5 mr-2" /> Contribute
+            </Button>
             <Button 
               variant="outline" 
               className="shrink-0 h-11 rounded-2xl border-none bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 hover:text-purple-800 shadow-sm font-bold transition-all hover:scale-105"

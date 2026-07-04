@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Calculator, FlaskConical, Globe, Languages, Laptop, Plus, ChevronRight, FileText, Download, Banknote, CreditCard, Landmark, ArrowLeft, X, ShoppingBag, Search } from "lucide-react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { EDUCATION_HIERARCHY } from "@/lib/educationData";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Subjects() {
   const [, setLocation] = useLocation();
@@ -29,9 +29,30 @@ export default function Subjects() {
   // Search & Sort State
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("popular");
+  const [notes, setNotes] = useState<any[]>([]);
 
-  const availableDegrees = selectedLevel ? Object.keys(EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY]) : [];
-  const availableCourses = (selectedLevel && selectedDegree) ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY][selectedDegree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("search", searchQuery);
+    if (selectedCourse) params.set("course", selectedCourse);
+
+    fetch(`/api/notes?${params.toString()}`, { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load notes");
+        return res.json();
+      })
+      .then(setNotes)
+      .catch((error) => {
+        console.error(error);
+        setNotes([]);
+      });
+  }, [searchQuery, selectedCourse]);
+
+  const selectedDegreeMap = selectedLevel
+    ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY] as Record<string, string[]>
+    : {};
+  const availableDegrees = Object.keys(selectedDegreeMap);
+  const availableCourses = selectedDegree ? selectedDegreeMap[selectedDegree] || [] : [];
 
   const handleLevelChange = (val: string) => {
     setSelectedLevel(val === "all" ? "" : val);
@@ -48,12 +69,26 @@ export default function Subjects() {
     setSelectedCourse(val === "all" ? "" : val);
   };
 
-  const handlePurchaseNotes = () => {
+  const handlePurchaseNotes = async (noteId?: string) => {
+    if (!auth.currentUser || !noteId) {
+      toast({ title: "Please sign in to purchase notes", variant: "destructive" });
+      return;
+    }
     toast({ title: "Payment Processing", description: "Redirecting to payment gateway..." });
-    setTimeout(() => {
-      toast({ title: "Purchase Successful", description: "Notes have been added to your study materials." });
+    try {
+      const res = await apiRequest("POST", "/api/notes/purchase", {
+        noteId,
+      });
+      const payment = await res.json();
+      if (payment.checkoutUrl) {
+        window.location.href = payment.checkoutUrl;
+        return;
+      }
+      toast({ title: "Payment Started", description: "Complete the secure payment to unlock these notes." });
       setPaymentOpenFor(null);
-    }, 2000);
+    } catch (error: any) {
+      toast({ title: "Purchase Failed", description: error.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -152,19 +187,9 @@ export default function Subjects() {
           </div>
         </div>
 
-        {/* Mocked Notes Cards */}
+        {/* Notes Cards */}
         <div className="space-y-4">
-          {[
-            { title: "Midterm Crash Course PDF", author: "Ali Khan", price: "500", rating: "4.8", course: "Computer Science" },
-            { title: "Complete Handwritten Notes", author: "Sara Ahmed", price: "800", rating: "4.9", course: "Physics" },
-            { title: "Past Papers Solved (2018-2023)", author: "Hamza Malik", price: "400", rating: "4.5", course: "Mathematics" },
-            { title: "English Grammar Rules & Essays", author: "Zainab B.", price: "300", rating: "4.7", course: "English" },
-            { title: "Chemistry Organic Reactions", author: "Umer T.", price: "600", rating: "4.6", course: "Chemistry" },
-            { title: "Urdu Literature Summary", author: "Aisha F.", price: "250", rating: "4.4", course: "Urdu" },
-          ]
-          .filter(note => note.title.toLowerCase().includes(searchQuery.toLowerCase()))
-          .filter(note => selectedCourse ? note.course === selectedCourse : true)
-          .map((note, i) => (
+          {notes.map((note, i) => (
             <Card key={i} className="border-border/50 bg-background/80 backdrop-blur-sm shadow-sm rounded-2xl overflow-hidden hover:border-primary/20 transition-all">
               <CardContent className="p-5 flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-4">
@@ -176,12 +201,12 @@ export default function Subjects() {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold leading-tight line-clamp-2">{note.title}</h3>
                       </div>
-                      <p className="text-xs text-muted-foreground">By {note.author} • ⭐ {note.rating}</p>
+                      <p className="text-xs text-muted-foreground">By {note.sellerName || note.userName} • ★ {note.rating}</p>
                       <Badge variant="secondary" className="mt-2 text-[9px] uppercase tracking-wider px-2 py-0.5">{note.course}</Badge>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="font-bold text-lg text-primary">Rs. {note.price}</span>
+                    <span className="font-bold text-lg text-primary">Rs. {note.notesPrice}</span>
                   </div>
                 </div>
                     
@@ -196,7 +221,7 @@ export default function Subjects() {
                           <DialogHeader>
                             <DialogTitle>{note.title}</DialogTitle>
                             <DialogDescription>
-                              By {note.author} • ⭐ {note.rating} (124 reviews)
+                              By {note.sellerName || note.userName} • ★ {note.rating} ({note.purchases || 0} purchases)
                             </DialogDescription>
                           </DialogHeader>
                           <div className="py-4 space-y-6">
@@ -234,7 +259,7 @@ export default function Subjects() {
                           </div>
                           <DialogFooter>
                             <Button className="w-full rounded-xl" onClick={() => setPaymentOpenFor(note.title)}>
-                              Buy for Rs. {note.price}
+                              Buy for Rs. {note.notesPrice}
                             </Button>
                           </DialogFooter>
                         </DialogContent>
@@ -250,7 +275,7 @@ export default function Subjects() {
                         <DialogHeader>
                           <DialogTitle>Purchase Notes</DialogTitle>
                           <DialogDescription>
-                            Buy '{note.title}' for Rs. {note.price}. You will be able to download them immediately.
+                            Buy '{note.title}' for Rs. {note.notesPrice}. You will be able to download them immediately.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="py-4 space-y-4">
@@ -284,8 +309,8 @@ export default function Subjects() {
                           )}
                         </div>
                         <DialogFooter>
-                          <Button onClick={handlePurchaseNotes} className="w-full h-12 rounded-xl" disabled={!paymentMethod}>
-                            Pay Rs. {note.price}
+                          <Button onClick={() => handlePurchaseNotes(note.id)} className="w-full h-12 rounded-xl" disabled={!paymentMethod}>
+                            Pay Rs. {note.notesPrice}
                           </Button>
                         </DialogFooter>
                       </DialogContent>

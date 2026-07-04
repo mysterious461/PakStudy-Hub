@@ -21,8 +21,11 @@ export default function Sell() {
 
   const [sellData, setSellData] = useState({ title: "", price: "" });
 
-  const availableDegrees = selectedLevel ? Object.keys(EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY]) : [];
-  const availableCourses = (selectedLevel && selectedDegree) ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY][selectedDegree as keyof typeof EDUCATION_HIERARCHY[any]] : [];
+  const selectedDegreeMap = selectedLevel
+    ? EDUCATION_HIERARCHY[selectedLevel as keyof typeof EDUCATION_HIERARCHY] as Record<string, string[]>
+    : {};
+  const availableDegrees = Object.keys(selectedDegreeMap);
+  const availableCourses = selectedDegree ? selectedDegreeMap[selectedDegree] || [] : [];
 
   const handleLevelChange = (val: string) => {
     setSelectedLevel(val);
