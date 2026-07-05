@@ -48,10 +48,20 @@ GCP_SERVICE_ACCOUNT_JSON
 - Push/read Artifact Registry build artifacts.
 - Act as the Cloud Run runtime service account if needed.
 
+Before adding the JSON to GitHub, confirm the file contains:
+
+```json
+"project_id": "pakstudy-hub-d418b"
+```
+
+If the JSON is for another project, either create a new key from a service account in `pakstudy-hub-d418b` or grant that service account access to `pakstudy-hub-d418b`.
+
 Recommended roles for the CI service account:
 
 ```text
+Firebase Admin
 Firebase Hosting Admin
+Firebase Viewer
 Cloud Run Admin
 Cloud Build Editor
 Artifact Registry Administrator
@@ -60,6 +70,21 @@ Viewer
 ```
 
 If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
+
+If Firebase Hosting deploy fails with:
+
+```text
+Failed to get Firebase project pakstudy-hub-d418b
+```
+
+check these items:
+
+1. The `GCP_SERVICE_ACCOUNT_JSON` secret is the complete JSON file content, not only the private key.
+2. The JSON has `"project_id": "pakstudy-hub-d418b"`.
+3. The service account email from the JSON exists in IAM for `pakstudy-hub-d418b`.
+4. The service account has at least `Firebase Admin` or `Firebase Viewer` plus `Firebase Hosting Admin`.
+5. Firebase Hosting is initialized/enabled for the project in Firebase Console.
+6. Required APIs are enabled, especially `firebasehosting.googleapis.com` and Firebase Management APIs.
 
 The workflows use Node 24-compatible action versions:
 

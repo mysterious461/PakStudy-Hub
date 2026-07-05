@@ -51,5 +51,11 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Verify Firebase project access
+        run: |
+          echo "Checking Firebase project access for pakstudy-hub-d418b..."
+          firebase projects:list --json --non-interactive
+          firebase apps:list --project pakstudy-hub-d418b --json --non-interactive
+
       - name: Deploy Firebase Hosting
         run: firebase deploy --only hosting --project pakstudy-hub-d418b --non-interactive
