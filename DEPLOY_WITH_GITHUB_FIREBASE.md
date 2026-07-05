@@ -28,7 +28,13 @@ If you deploy Firestore or Storage rules from CI, also ensure Firebase Managemen
 
 ## Required GitHub secrets
 
-Create these in GitHub:
+Create these in GitHub under:
+
+```text
+mysterious461/PakStudy-Hub > Settings > Secrets and variables > Actions > Repository secrets
+```
+
+Required:
 
 ```text
 GCP_SERVICE_ACCOUNT_JSON
@@ -51,6 +57,17 @@ Cloud Build Editor
 Artifact Registry Administrator
 Service Account User
 Viewer
+```
+
+If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
+
+The workflows use Node 24-compatible action versions:
+
+```text
+actions/checkout@v6
+actions/setup-node@v6
+google-github-actions/auth@v3
+google-github-actions/setup-gcloud@v3
 ```
 
 Do not add Firebase Admin service account JSON to frontend files. If the backend needs explicit Firebase Admin credentials, store them in Google Secret Manager or GitHub secrets and inject them only into Cloud Run.
