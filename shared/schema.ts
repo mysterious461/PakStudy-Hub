@@ -193,7 +193,7 @@ export const contributorResourceSchema = z.object({
   course: z.string().min(2).max(160),
   resourceType: z.enum(["notes", "past_papers", "slides", "lab_manual", "assignment_solution", "formula_sheet", "other"]),
   title: z.string().min(3).max(180),
-  description: z.string().min(10).max(1200),
+  description: z.string().min(1).max(1200),
   tags: z.array(z.string().min(1).max(40)).max(20).default([]),
   hasPermission: z.coerce.boolean().refine((value) => value, "Permission confirmation is required"),
 });

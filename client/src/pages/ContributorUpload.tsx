@@ -27,6 +27,30 @@ const initialForm = {
 
 type UploadForm = typeof initialForm;
 
+const requiredFields: Array<{ key: keyof UploadForm; label: string; minLength?: number }> = [
+  { key: "university", label: "University", minLength: 2 },
+  { key: "department", label: "Department", minLength: 2 },
+  { key: "degree", label: "Degree", minLength: 2 },
+  { key: "semester", label: "Semester" },
+  { key: "course", label: "Course", minLength: 2 },
+  { key: "title", label: "Title", minLength: 3 },
+  { key: "description", label: "Description" },
+];
+
+async function readUploadError(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    const payload = await response.json().catch(() => null);
+    const fieldErrors = Array.isArray(payload?.errors)
+      ? payload.errors.map((error: any) => `${error.path || "Field"}: ${error.message}`).join("; ")
+      : "";
+    return fieldErrors || payload?.message || "Upload failed. Please check your fields and try again.";
+  }
+
+  return "The upload service is not responding correctly. Please try again in a moment.";
+}
+
 export default function ContributorUpload() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -64,6 +88,11 @@ export default function ContributorUpload() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const missingField = requiredFields.find(({ key, minLength = 1 }) => String(form[key]).trim().length < minLength);
+    if (missingField) {
+      toast({ title: `${missingField.label} required`, description: `Please enter a valid ${missingField.label.toLowerCase()}.`, variant: "destructive" });
+      return;
+    }
     if (!file) {
       toast({ title: "File required", description: "Attach a PDF, PNG, or JPG resource.", variant: "destructive" });
       return;
@@ -75,9 +104,17 @@ export default function ContributorUpload() {
 
     setIsSubmitting(true);
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const user = auth.currentUser;
+      if (!user) {
+        setLocation("/auth?returnTo=/contributors/upload");
+        throw new Error("Please sign in before uploading resources.");
+      }
+
+      const token = await user.getIdToken();
       const payload = new FormData();
-      Object.entries(form).forEach(([key, value]) => payload.append(key, String(value)));
+      Object.entries(form).forEach(([key, value]) => {
+        payload.append(key, typeof value === "string" ? value.trim() : String(value));
+      });
       payload.append("file", file);
 
       const response = await fetch("/api/contributor/resources", {
@@ -87,14 +124,14 @@ export default function ContributorUpload() {
         credentials: "include",
       });
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) throw new Error(await readUploadError(response));
       setForm(initialForm);
       setFile(null);
       event.currentTarget.reset();
       toast({ title: "Submitted for review", description: "Your resource is now pending admin approval." });
       setLocation("/contributors/uploads");
-    } catch {
-      toast({ title: "Could not submit", description: "Please check your fields and try again.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Could not submit", description: error.message || "Please check your fields and try again.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
