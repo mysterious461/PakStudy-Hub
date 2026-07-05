@@ -62,6 +62,26 @@ jobs:
         with:
           project_id: pakstudy-hub-d418b
 
+      - name: Verify required Google APIs
+        run: |
+          missing=0
+          for api in run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com; do
+            if ! gcloud services list \
+              --enabled \
+              --project pakstudy-hub-d418b \
+              --filter="config.name=$api" \
+              --format="value(config.name)" | grep -q "$api"; then
+              echo "Missing required API: $api"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Enable the missing APIs from Google Cloud Console, or grant the CI service account Service Usage Admin."
+            echo "Console: https://console.cloud.google.com/apis/library?project=pakstudy-hub-d418b"
+            exit 1
+          fi
+
       - name: Deploy backend to Cloud Run
         run: |
           gcloud run deploy "${{ inputs.service }}" \
@@ -69,6 +89,7 @@ jobs:
             --project pakstudy-hub-d418b \
             --region "${{ inputs.region }}" \
             --allow-unauthenticated \
+            --quiet \
             --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app,PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
 
       - name: Show service URL

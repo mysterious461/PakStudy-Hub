@@ -24,6 +24,24 @@ gcloud services enable firebasehosting.googleapis.com
 gcloud services enable secretmanager.googleapis.com
 ```
 
+If GitHub Actions reports that it cannot enable an API, enable the API manually from the Google Cloud Console using an Owner/Editor account:
+
+```text
+https://console.cloud.google.com/apis/library?project=pakstudy-hub-d418b
+```
+
+Required API names in the console:
+
+```text
+Cloud Run Admin API
+Cloud Build API
+Artifact Registry API
+Firebase Hosting API
+Secret Manager API
+```
+
+Alternatively, grant the CI service account `Service Usage Admin` (`roles/serviceusage.serviceUsageAdmin`) so it can enable services itself. Manual enablement is safer for a production project.
+
 If you deploy Firestore or Storage rules from CI, also ensure Firebase Management APIs are enabled from the Firebase Console or Google Cloud Console.
 
 ## Required GitHub secrets
@@ -66,8 +84,17 @@ Cloud Run Admin
 Cloud Build Editor
 Artifact Registry Administrator
 Service Account User
+Service Usage Viewer
 Viewer
 ```
+
+If you want the workflow to enable missing Google APIs automatically, also grant:
+
+```text
+Service Usage Admin
+```
+
+The current workflow does not auto-enable APIs. It checks for required APIs and exits with a clear message if any are missing.
 
 If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
 
