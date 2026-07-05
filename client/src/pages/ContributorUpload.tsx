@@ -88,6 +88,7 @@ export default function ContributorUpload() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     const missingField = requiredFields.find(({ key, minLength = 1 }) => String(form[key]).trim().length < minLength);
     if (missingField) {
       toast({ title: `${missingField.label} required`, description: `Please enter a valid ${missingField.label.toLowerCase()}.`, variant: "destructive" });
@@ -127,7 +128,7 @@ export default function ContributorUpload() {
       if (!response.ok) throw new Error(await readUploadError(response));
       setForm(initialForm);
       setFile(null);
-      event.currentTarget.reset();
+      formElement.reset();
       toast({ title: "Submitted for review", description: "Your resource is now pending admin approval." });
       setLocation("/contributors/uploads");
     } catch (error: any) {
