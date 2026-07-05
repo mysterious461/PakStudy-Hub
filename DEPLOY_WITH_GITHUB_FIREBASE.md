@@ -146,6 +146,36 @@ Secret Manager Secret Accessor
 
 `Secret Manager Secret Accessor` is only required if backend secrets are attached from Secret Manager.
 
+### Fix `artifactregistry.repositories.create` during Cloud Run deploy
+
+If Cloud Run deploy fails with:
+
+```text
+Permission 'artifactregistry.repositories.create' denied
+```
+
+Cloud Run source deploy is trying to create the Artifact Registry repository where build images are stored.
+
+Use one of these fixes:
+
+1. Recommended: create the repository once with an Owner/Editor account:
+
+```bash
+gcloud artifacts repositories create cloud-run-source-deploy \
+  --repository-format=docker \
+  --location=us-central1 \
+  --project=pakstudy-hub-d418b \
+  --description="Cloud Run source deploy images"
+```
+
+2. Or grant the CI service account this role on the project:
+
+```text
+Artifact Registry Administrator
+```
+
+After the repository exists, the deploy service account typically only needs permissions to upload/read artifacts during Cloud Build. The workflow checks for this repository before deployment and exits with a clear message if it is missing.
+
 If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
 
 If Firebase Hosting deploy fails with:

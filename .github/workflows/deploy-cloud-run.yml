@@ -86,6 +86,18 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Artifact Registry source repository
+        run: |
+          if ! gcloud artifacts repositories describe cloud-run-source-deploy \
+            --project pakstudy-hub-d418b \
+            --location "${{ inputs.region }}" >/dev/null 2>&1; then
+            echo "Missing Artifact Registry repository: cloud-run-source-deploy in ${{ inputs.region }}"
+            echo "Create it once from Google Cloud Console or Cloud Shell:"
+            echo "gcloud artifacts repositories create cloud-run-source-deploy --repository-format=docker --location=${{ inputs.region }} --project=pakstudy-hub-d418b --description='Cloud Run source deploy images'"
+            echo "Alternatively grant the CI service account Artifact Registry Administrator so Cloud Run can create it."
+            exit 1
+          fi
+
       - name: Deploy backend to Cloud Run
         run: |
           gcloud run deploy "${{ inputs.service }}" \
