@@ -31,6 +31,7 @@ export async function saveUploadedFile(userId: string, file: Express.Multer.File
   const extension = file.originalname.includes(".") ? file.originalname.split(".").pop() : "bin";
   const path = `${folder}/${userId}/${Date.now()}-${randomUUID()}.${extension}`;
   const storageFile = bucket.file(path);
+  const downloadToken = randomUUID();
 
   try {
     await storageFile.save(file.buffer, {
@@ -39,6 +40,7 @@ export async function saveUploadedFile(userId: string, file: Express.Multer.File
         metadata: {
           originalName: file.originalname,
           ownerId: userId,
+          firebaseStorageDownloadTokens: downloadToken,
         },
       },
       resumable: false,
@@ -55,14 +57,11 @@ export async function saveUploadedFile(userId: string, file: Express.Multer.File
     throw error;
   }
 
-  const [signedUrl] = await storageFile.getSignedUrl({
-    action: "read",
-    expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-  });
+  const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${downloadToken}`;
 
   return {
     path,
-    url: signedUrl,
+    url,
     contentType: file.mimetype,
     size: file.size,
     originalName: file.originalname,
