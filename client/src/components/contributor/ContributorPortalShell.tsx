@@ -1,8 +1,10 @@
-import React from "react";
-import { BookOpen, GraduationCap, HelpCircle, Home, LayoutDashboard, LogIn, UploadCloud, User, Files } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { BookOpen, GraduationCap, HelpCircle, Home, LayoutDashboard, LogIn, ShieldCheck, UploadCloud, User, Files } from "lucide-react";
 import { useLocation } from "wouter";
+import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 type ContributorPortalShellProps = {
@@ -11,7 +13,31 @@ type ContributorPortalShellProps = {
 
 export function ContributorPortalShell({ children }: ContributorPortalShellProps) {
   const [, setLocation] = useLocation();
-  const user = auth.currentUser;
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [role, setRole] = useState("Student");
+  const isAdmin = role === "Admin" || role === "Moderator";
+
+  useEffect(() => {
+    let unsubscribeProfile: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setRole("Student");
+      unsubscribeProfile?.();
+      unsubscribeProfile = undefined;
+
+      if (currentUser) {
+        unsubscribeProfile = onSnapshot(doc(db, "users", currentUser.uid), (snapshot) => {
+          const nextRole = snapshot.data()?.role;
+          setRole(nextRole === "Admin" || nextRole === "Moderator" ? nextRole : "Student");
+        }, () => setRole("Student"));
+      }
+    });
+
+    return () => {
+      unsubscribeProfile?.();
+      unsubscribeAuth();
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950 text-foreground">
@@ -33,6 +59,8 @@ export function ContributorPortalShell({ children }: ContributorPortalShellProps
             <NavButton icon={Files} label="My Uploads" onClick={() => setLocation(user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads")} />
             <NavButton icon={LayoutDashboard} label="Dashboard" onClick={() => setLocation(user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")} />
             <NavButton icon={User} label="Profile" onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/profile")} />
+            {isAdmin && <NavButton icon={ShieldCheck} label="Admin" onClick={() => setLocation("/admin")} />}
+            {isAdmin && <NavButton icon={ShieldCheck} label="Review" onClick={() => setLocation("/admin/resources/review")} />}
           </nav>
 
           <Button
@@ -52,6 +80,8 @@ export function ContributorPortalShell({ children }: ContributorPortalShellProps
           <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads")}>My Uploads</Button>
           <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")}>Dashboard</Button>
           <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/profile")}>Profile</Button>
+          {isAdmin && <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation("/admin")}>Admin</Button>}
+          {isAdmin && <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation("/admin/resources/review")}>Review</Button>}
         </div>
       </header>
 

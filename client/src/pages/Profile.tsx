@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Award, CalendarDays, Home, Loader2, LockKeyhole, LogOut, Save, UserRound } from "lucide-react";
 import { useLocation } from "wouter";
-import { sendPasswordResetEmail, signOut, updateProfile as updateAuthProfile } from "firebase/auth";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { onAuthStateChanged, sendPasswordResetEmail, signOut, updateProfile as updateAuthProfile, type User as FirebaseUser } from "firebase/auth";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,12 @@ import { auth, db } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
 const initialProfile = {
+  uid: "",
   name: "",
   email: "",
+  role: "Student",
+  reputation: 0,
+  isBanned: false,
   university: "",
   department: "",
   degree: "",
@@ -35,44 +39,76 @@ const emptyStats = {
 export default function Profile() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const user = auth.currentUser;
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [profile, setProfile] = useState(initialProfile);
   const [savedProfile, setSavedProfile] = useState<any>(null);
   const [stats, setStats] = useState(emptyStats);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!user) {
-      setLocation("/auth?returnTo=/profile");
-      return;
-    }
-
-    void apiRequest("POST", "/api/users/me").catch(() => undefined);
-    void apiRequest("GET", "/api/contributor/stats")
-      .then((response) => response.json())
-      .then(setStats)
-      .catch(() => setStats(emptyStats));
-
-    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
-      const data = snapshot.exists() ? snapshot.data() : {};
-      const nextProfile = {
-        name: data.name || user.displayName || "",
-        email: data.email || user.email || "",
-        university: data.university || "",
-        department: data.department || "",
-        degree: data.degree || data.track || "",
-        grade: data.grade || "",
-        bio: data.bio || "",
-      };
-      setProfile(nextProfile);
-      setSavedProfile({ ...data, createdAt: data.createdAt });
-      setIsLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) setLocation("/auth?returnTo=/profile");
     });
-
     return () => unsubscribe();
-  }, [user, setLocation]);
+  }, [setLocation]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      setIsLoading(true);
+      setLoadError("");
+
+      try {
+        await apiRequest("POST", "/api/users/me").catch((error) => {
+          if (import.meta.env.DEV) console.warn("Profile backend sync failed:", error);
+        });
+
+        const userRef = doc(db, "users", user.uid);
+        let snapshot = await getDoc(userRef);
+
+        if (!snapshot.exists()) {
+          await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email || "",
+            name: user.displayName || user.email?.split("@")[0] || "Student Contributor",
+            role: "Student",
+            reputation: 0,
+            isBanned: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          snapshot = await getDoc(userRef);
+        }
+
+        const data = snapshot.data() || {};
+        const nextProfile = normalizeProfile(user, data);
+        const contributorStats = await loadContributorStats(nextProfile.reputation);
+
+        if (!cancelled) {
+          setProfile(nextProfile);
+          setSavedProfile({ ...data, createdAt: data.createdAt });
+          setStats(contributorStats);
+        }
+      } catch (error: any) {
+        if (import.meta.env.DEV) console.warn("Profile fetch failed:", error);
+        if (!cancelled) setLoadError(error.message || "Could not load your contributor profile.");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, reloadKey]);
 
   const updateField = (field: keyof typeof initialProfile, value: string) => {
     setProfile((current) => ({ ...current, [field]: value }));
@@ -82,25 +118,31 @@ export default function Profile() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await updateAuthProfile(user, { displayName: profile.name.trim() || user.displayName });
+      const nextName = profile.name.trim() || user.displayName || "Student Contributor";
+      await updateAuthProfile(user, { displayName: nextName });
       await setDoc(doc(db, "users", user.uid), {
-        name: profile.name.trim(),
-        email: profile.email || user.email,
+        uid: user.uid,
+        name: nextName,
+        email: profile.email || user.email || "",
+        role: isAdminRole(profile.role) ? profile.role : "Student",
+        reputation: profile.reputation || 0,
+        isBanned: profile.isBanned || false,
         university: profile.university.trim(),
         department: profile.department.trim(),
         degree: profile.degree.trim(),
         grade: profile.grade.trim(),
         track: profile.degree.trim(),
         bio: profile.bio.trim(),
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
       }, { merge: true });
       await apiRequest("PATCH", "/api/users/me/profile", {
-        name: profile.name.trim(),
+        name: nextName,
         university: profile.university.trim(),
         grade: profile.grade.trim(),
         track: profile.degree.trim(),
         bio: profile.bio.trim(),
       });
+      setProfile((current) => ({ ...current, name: nextName }));
       setIsEditing(false);
       toast({ title: "Profile updated", description: "Your contributor profile has been saved." });
     } catch (error: any) {
@@ -143,6 +185,13 @@ export default function Profile() {
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               Loading profile
             </div>
+          ) : loadError ? (
+            <StateCard
+              title="Could not load profile"
+              text="We could not load your contributor profile. Please check your connection and try again."
+              actionLabel="Retry"
+              onAction={() => setReloadKey((key) => key + 1)}
+            />
           ) : (
             <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
               <Card className="border-border/60 shadow-sm">
@@ -158,6 +207,11 @@ export default function Profile() {
                   <Badge variant="outline" className="mt-4 rounded-full border-primary/20 bg-primary/10 px-4 py-1.5 text-primary">
                     {stats.badgeStatus}
                   </Badge>
+                  {isAdminRole(profile.role) && (
+                    <Badge variant="outline" className="mt-2 rounded-full border-blue-200 bg-blue-50 px-4 py-1.5 text-blue-700">
+                      {profile.role}
+                    </Badge>
+                  )}
 
                   <div className="mt-6 grid grid-cols-2 gap-3 text-left">
                     <MiniStat label="Reputation" value={stats.reputationPoints} icon={Award} />
@@ -177,6 +231,11 @@ export default function Profile() {
               <div className="space-y-5">
                 <Card className="border-border/60 shadow-sm">
                   <CardContent className="p-6">
+                    {isProfileEmpty(profile) && !isEditing && (
+                      <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                        Your contributor profile is ready, but academic details are still empty. Add your university, department, degree program, study level, and bio to help reviewers understand your submissions.
+                      </div>
+                    )}
                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <h2 className="text-lg font-black">Academic Details</h2>
@@ -237,6 +296,60 @@ export default function Profile() {
       </div>
     </ContributorPortalShell>
   );
+}
+
+async function loadContributorStats(fallbackReputation: number) {
+  try {
+    const response = await apiRequest("GET", "/api/contributor/stats");
+    const payload = await response.json();
+    return {
+      ...emptyStats,
+      ...payload,
+      reputationPoints: payload.reputationPoints ?? fallbackReputation,
+    };
+  } catch (error) {
+    if (import.meta.env.DEV) console.warn("Contributor stats fetch failed:", error);
+    return { ...emptyStats, reputationPoints: fallbackReputation };
+  }
+}
+
+function normalizeProfile(user: FirebaseUser, data: any) {
+  return {
+    uid: data.uid || user.uid,
+    name: data.name || user.displayName || "Student Contributor",
+    email: data.email || user.email || "",
+    role: isAdminRole(data.role) ? data.role : "Student",
+    reputation: Number(data.reputation || 0),
+    isBanned: Boolean(data.isBanned),
+    university: data.university || "",
+    department: data.department || "",
+    degree: data.degree || data.track || "",
+    grade: data.grade || "",
+    bio: data.bio || "",
+  };
+}
+
+function isAdminRole(role: string | undefined) {
+  return role === "Admin" || role === "Moderator";
+}
+
+function StateCard({ title, text, actionLabel, onAction }: { title: string; text: string; actionLabel: string; onAction: () => void }) {
+  return (
+    <Card className="mx-auto max-w-xl border-border/60 shadow-sm">
+      <CardContent className="p-8 text-center">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <UserRound className="h-7 w-7" />
+        </div>
+        <h2 className="text-xl font-black">{title}</h2>
+        <p className="mt-2 text-sm leading-7 text-muted-foreground">{text}</p>
+        <Button className="mt-6 rounded-2xl font-bold" onClick={onAction}>{actionLabel}</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function isProfileEmpty(profile: typeof initialProfile) {
+  return !profile.university && !profile.department && !profile.degree && !profile.grade && !profile.bio;
 }
 
 function ProfileField({ label, value, editing, placeholder, onChange }: { label: string; value: string; editing: boolean; placeholder?: string; onChange: (value: string) => void }) {
