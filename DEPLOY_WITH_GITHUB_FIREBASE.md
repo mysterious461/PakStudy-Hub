@@ -174,7 +174,7 @@ gcloud artifacts repositories create cloud-run-source-deploy \
 Artifact Registry Administrator
 ```
 
-After the repository exists, the deploy service account typically only needs permissions to upload/read artifacts during Cloud Build. The workflow checks for this repository before deployment and exits with a clear message if it is missing.
+After the repository exists, the deploy service account typically only needs permissions to upload/read artifacts during Cloud Build. The workflow now checks for this repository before deployment and emits a warning if it is missing, then continues so Cloud Run can create it when the CI service account has `Artifact Registry Administrator`.
 
 If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
 
