@@ -19,8 +19,15 @@
     ],
     "rewrites": [
       {
-        "source": "**",
-        "destination": "/index.html"
+        "source": "/api/**",
+	"run": {
+	  "serviceId": "pakstudy-hub-api",
+	  "region": "us-central1"
+        }
+      },
+      {
+	"source": "**",
+	"destination": "/index.html"
       }
     ]
   },
