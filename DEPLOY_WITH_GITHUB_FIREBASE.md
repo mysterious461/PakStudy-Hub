@@ -96,6 +96,56 @@ Service Usage Admin
 
 The current workflow does not auto-enable APIs. It checks for required APIs and exits with a clear message if any are missing.
 
+### Fix `iam.serviceaccounts.actAs` during Cloud Run deploy
+
+If Cloud Run deploy fails with:
+
+```text
+Permission 'iam.serviceaccounts.actAs' denied on service account 41032167808-compute@developer.gserviceaccount.com
+```
+
+grant the CI service account permission to act as the Cloud Run runtime service account.
+
+In Google Cloud Console:
+
+1. Go to IAM & Admin > Service Accounts.
+2. Open this service account:
+
+```text
+41032167808-compute@developer.gserviceaccount.com
+```
+
+3. Open the Permissions tab.
+4. Click Grant Access.
+5. Principal: the `client_email` from `GCP_SERVICE_ACCOUNT_JSON`, currently expected to be similar to:
+
+```text
+gcp-service-account-json@pakstudy-hub-d418b.iam.gserviceaccount.com
+```
+
+6. Role:
+
+```text
+Service Account User
+```
+
+The Cloud Run workflow now makes this runtime identity explicit with:
+
+```bash
+--service-account 41032167808-compute@developer.gserviceaccount.com
+```
+
+The runtime service account also needs permissions used by the backend at runtime:
+
+```text
+Firebase Admin
+Cloud Datastore User
+Storage Object Admin
+Secret Manager Secret Accessor
+```
+
+`Secret Manager Secret Accessor` is only required if backend secrets are attached from Secret Manager.
+
 If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
 
 If Firebase Hosting deploy fails with:

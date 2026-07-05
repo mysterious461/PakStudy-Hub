@@ -11,6 +11,10 @@ on:
         description: Cloud Run service name
         default: pakstudy-hub-api
         required: true
+      runtime_service_account:
+        description: Cloud Run runtime service account
+        default: 41032167808-compute@developer.gserviceaccount.com
+        required: true
 
 jobs:
   deploy-cloud-run:
@@ -89,6 +93,7 @@ jobs:
             --project pakstudy-hub-d418b \
             --region "${{ inputs.region }}" \
             --allow-unauthenticated \
+            --service-account "${{ inputs.runtime_service_account }}" \
             --quiet \
             --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app,PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
 
