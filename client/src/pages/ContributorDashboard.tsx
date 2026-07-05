@@ -46,8 +46,8 @@ export default function ContributorDashboard() {
   return (
     <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
-      <header className="border-b bg-background shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+      <div className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
         <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
           <Home className="mr-2 h-4 w-4" />
           Back to Home
@@ -57,9 +57,9 @@ export default function ContributorDashboard() {
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Resource Library</p>
         </div>
         </div>
-      </header>
+      </div>
 
-      <div className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
         {isLoading ? (
           <div className="min-h-80 flex items-center justify-center text-muted-foreground">
             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -108,7 +108,11 @@ export default function ContributorDashboard() {
               </Button>
               <Button variant="outline" className="h-12 rounded-2xl font-bold" onClick={() => setLocation("/contributors/uploads")}>
                 <FileText className="w-4 h-4 mr-2" />
-                My Uploads
+                View My Uploads
+              </Button>
+              <Button variant="ghost" className="h-12 rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+                <Home className="w-4 h-4 mr-2" />
+                Back to Home
               </Button>
             </div>
           </div>

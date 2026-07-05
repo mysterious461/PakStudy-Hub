@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Award, CalendarDays, Home, Loader2, LockKeyhole, LogOut, Save, UserRound } from "lucide-react";
 import { useLocation } from "wouter";
 import { onAuthStateChanged, sendPasswordResetEmail, signOut, updateProfile as updateAuthProfile, type User as FirebaseUser } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
 const initialProfile = {
@@ -68,31 +67,12 @@ export default function Profile() {
       try {
         const profileResponse = await apiRequest("GET", "/api/user/profile");
         const backendProfile = await profileResponse.json();
-
-        const userRef = doc(db, "users", user.uid);
-        let snapshot = await getDoc(userRef);
-
-        if (!snapshot.exists()) {
-          await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email || "",
-            name: user.displayName || user.email?.split("@")[0] || "Student Contributor",
-            role: "Student",
-            reputation: 0,
-            isBanned: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          }, { merge: true });
-          snapshot = await getDoc(userRef);
-        }
-
-        const data = snapshot.data() || {};
-        const nextProfile = normalizeProfile(user, { ...data, ...backendProfile });
+        const nextProfile = normalizeProfile(user, backendProfile);
         const contributorStats = await loadContributorStats(nextProfile.reputation);
 
         if (!cancelled) {
           setProfile(nextProfile);
-          setSavedProfile({ ...data, createdAt: data.createdAt });
+          setSavedProfile(backendProfile);
           setStats(contributorStats);
         }
       } catch (error: any) {
@@ -119,29 +99,17 @@ export default function Profile() {
     try {
       const nextName = profile.name.trim() || user.displayName || "Student Contributor";
       await updateAuthProfile(user, { displayName: nextName });
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
+      const response = await apiRequest("PATCH", "/api/user/profile", {
         name: nextName,
-        email: profile.email || user.email || "",
-        role: isAdminRole(profile.role) ? profile.role : "Student",
-        reputation: profile.reputation || 0,
-        isBanned: profile.isBanned || false,
         university: profile.university.trim(),
         department: profile.department.trim(),
         degree: profile.degree.trim(),
         grade: profile.grade.trim(),
-        track: profile.degree.trim(),
-        bio: profile.bio.trim(),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-      await apiRequest("PATCH", "/api/users/me/profile", {
-        name: nextName,
-        university: profile.university.trim(),
-        grade: profile.grade.trim(),
-        track: profile.degree.trim(),
         bio: profile.bio.trim(),
       });
-      setProfile((current) => ({ ...current, name: nextName }));
+      const updatedProfile = await response.json();
+      setProfile(normalizeProfile(user, updatedProfile));
+      setSavedProfile(updatedProfile);
       setIsEditing(false);
       toast({ title: "Profile updated", description: "Your contributor profile has been saved." });
     } catch (error: any) {
@@ -165,8 +133,8 @@ export default function Profile() {
   return (
     <ContributorPortalShell>
       <div className="min-h-[calc(100vh-170px)] bg-muted/10">
-        <header className="border-b bg-background shadow-sm">
-          <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+        <div className="border-b bg-background shadow-sm">
+          <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
             <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
               <Home className="mr-2 h-4 w-4" />
               Back to Home
@@ -176,9 +144,9 @@ export default function Profile() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Academic identity</p>
             </div>
           </div>
-        </header>
+        </div>
 
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
           {isLoading ? (
             <div className="flex min-h-80 items-center justify-center text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

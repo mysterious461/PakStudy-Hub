@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -65,9 +66,10 @@ export default function AdminResourceReview() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/10">
-      <header className="sticky top-0 z-10 border-b bg-background shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
+    <ContributorPortalShell>
+    <div className="min-h-[calc(100vh-170px)] bg-muted/10">
+      <div className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
         <Button variant="ghost" size="icon" className="-ml-2 hover:bg-muted/50" onClick={() => setLocation("/admin")}>
           <ArrowLeft className="w-6 h-6" />
         </Button>
@@ -80,9 +82,9 @@ export default function AdminResourceReview() {
           Back to Home
         </Button>
         </div>
-      </header>
+      </div>
 
-      <div className="mx-auto max-w-6xl p-4 pb-24 sm:p-6">
+      <div className="mx-auto max-w-7xl p-4 pb-24 sm:p-6">
         {isLoading ? (
           <State icon={Loader2} title="Loading review queue" text="Checking pending resources." spin />
         ) : !canAccess ? (
@@ -160,6 +162,7 @@ export default function AdminResourceReview() {
         </DialogContent>
       </Dialog>
     </div>
+    </ContributorPortalShell>
   );
 }
 

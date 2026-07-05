@@ -60,7 +60,7 @@ export interface IStorage {
   createReport(input: ReportInput & { reporterId: string }): Promise<Report>;
   listReports(): Promise<Report[]>;
   resolveReport(id: string, action: AdminAction): Promise<Report>;
-  getAdminStats(): Promise<{ users: number; questions: number; pendingReports: number; pendingCourses: number; notesForSale: number }>;
+  getAdminStats(): Promise<{ users: number; questions: number; pendingReports: number; pendingCourses: number; notesForSale: number; pendingResources: number; approvedResources: number; rejectedResources: number }>;
   getLeaderboard(): Promise<User[]>;
   createResource(input: AcademicResourceMetadata & { file: StoredFile; uploadedBy: string; uploadedByName: string }): Promise<AcademicResource>;
   listResources(filters?: { visibility?: string }): Promise<AcademicResource[]>;
@@ -523,13 +523,16 @@ export class FirestoreStorage implements IStorage {
     return { id: updated.id, ...updated.data(), createdAt: toDate(updated.data()?.createdAt) } as Report;
   }
 
-  async getAdminStats(): Promise<{ users: number; questions: number; pendingReports: number; pendingCourses: number; notesForSale: number }> {
-    const [users, questions, reports, courses, notes] = await Promise.all([
+  async getAdminStats(): Promise<{ users: number; questions: number; pendingReports: number; pendingCourses: number; notesForSale: number; pendingResources: number; approvedResources: number; rejectedResources: number }> {
+    const [users, questions, reports, courses, notes, pendingResources, approvedResources, rejectedResources] = await Promise.all([
       db.collection("users").count().get(),
       db.collection("questions").where("status", "==", "published").count().get(),
       db.collection("reports").where("status", "==", "pending").count().get(),
       db.collection("pendingCourses").where("status", "==", "pending").count().get(),
       db.collection("questions").where("sellNotes", "==", true).where("status", "==", "published").count().get(),
+      db.collection("resources").where("status", "==", "pending").count().get(),
+      db.collection("resources").where("status", "==", "approved").count().get(),
+      db.collection("resources").where("status", "==", "rejected").count().get(),
     ]);
     return {
       users: users.data().count,
@@ -537,6 +540,9 @@ export class FirestoreStorage implements IStorage {
       pendingReports: reports.data().count,
       pendingCourses: courses.data().count,
       notesForSale: notes.data().count,
+      pendingResources: pendingResources.data().count,
+      approvedResources: approvedResources.data().count,
+      rejectedResources: rejectedResources.data().count,
     };
   }
 

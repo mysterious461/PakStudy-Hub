@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, ShieldAlert, Users, CheckCircle, Trash2, UploadCloud, FileCheck2 } from "lucide-react";
+import { CheckCircle, FileCheck2, Home, ShieldAlert, Trash2, UploadCloud, Users, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -12,7 +13,13 @@ export default function Admin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [reports, setReports] = useState<any[]>([]);
-  const [stats, setStats] = useState({ users: 0, pendingReports: 0 });
+  const [stats, setStats] = useState({
+    users: 0,
+    pendingResources: 0,
+    approvedResources: 0,
+    rejectedResources: 0,
+    pendingReports: 0,
+  });
 
   useEffect(() => {
     const loadAdmin = async () => {
@@ -46,73 +53,36 @@ export default function Admin() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
-      <header className="px-6 py-4 bg-background sticky top-0 z-10 border-b flex items-center gap-4 shadow-sm">
-        <Button variant="ghost" size="icon" className="-ml-2 hover:bg-muted/50" onClick={() => setLocation("/profile")}>
-          <ArrowLeft className="w-6 h-6" />
-        </Button>
-        <div>
-          <h1 className="text-lg font-bold truncate">Admin Dashboard</h1>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Moderator View</p>
+    <ContributorPortalShell>
+    <div className="min-h-[calc(100vh-170px)] bg-muted/10">
+      <div className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
+          <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+            <Home className="mr-2 h-4 w-4" />
+            Back to Portal Home
+          </Button>
+          <div>
+            <h1 className="text-lg font-bold truncate">Admin Dashboard</h1>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Moderator operations</p>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
+      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 pb-24 sm:p-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-4 flex flex-col gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
-                <Users className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.users}</p>
-                <p className="text-xs text-muted-foreground font-medium">Total Users</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-4 flex flex-col gap-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.pendingReports || reports.filter(r => r.status === "pending").length}</p>
-                <p className="text-xs text-muted-foreground font-medium">Pending Reports</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <AdminStatCard icon={Users} label="Total Users" value={stats.users} color="text-blue-600 bg-blue-100" />
+          <AdminStatCard icon={ShieldAlert} label="Pending Resources" value={stats.pendingResources} color="text-amber-600 bg-amber-100" />
+          <AdminStatCard icon={CheckCircle} label="Approved Resources" value={stats.approvedResources} color="text-green-600 bg-green-100" />
+          <AdminStatCard icon={XCircle} label="Rejected Resources" value={stats.rejectedResources} color="text-red-600 bg-red-100" />
+          <AdminStatCard icon={ShieldAlert} label="Pending Reports" value={stats.pendingReports || reports.filter(r => r.status === "pending").length} color="text-orange-600 bg-orange-100" />
         </div>
 
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <UploadCloud className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-sm">Launch Resource Upload</p>
-              <p className="text-xs text-muted-foreground">Add curated files to Firebase Storage and Firestore.</p>
-            </div>
-            <Button size="sm" className="font-semibold" onClick={() => setLocation("/admin-upload")}>
-              Open
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-500/10 text-green-600 flex items-center justify-center shrink-0">
-              <FileCheck2 className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-sm">Contributor Review Queue</p>
-              <p className="text-xs text-muted-foreground">Approve, reject, or request changes for student uploads.</p>
-            </div>
-            <Button size="sm" variant="outline" className="font-semibold" onClick={() => setLocation("/admin/resources/review")}>
-              Review
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <ActionCard icon={FileCheck2} title="Review Resources" text="Approve, reject, or request changes for student uploads." button="Review Resources" onClick={() => setLocation("/admin/resources/review")} />
+          <ActionCard icon={Users} title="Manage Users" text="Inspect user reports and moderation status." button="Manage Users" onClick={() => setLocation("/admin")} />
+          <ActionCard icon={UploadCloud} title="Curated Uploads" text="Add academic files manually before public launch." button="Open Upload" onClick={() => setLocation("/admin-upload")} />
+        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="reports" className="w-full">
@@ -163,5 +133,39 @@ export default function Admin() {
         </Tabs>
       </div>
     </div>
+    </ContributorPortalShell>
+  );
+}
+
+function AdminStatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
+  return (
+    <Card className="border-border/50 shadow-sm">
+      <CardContent className="p-4">
+        <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${color}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <p className="text-2xl font-black">{value}</p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ActionCard({ icon: Icon, title, text, button, onClick }: { icon: any; title: string; text: string; button: string; onClick: () => void }) {
+  return (
+    <Card className="border-border/50 shadow-sm">
+      <CardContent className="flex h-full flex-col gap-4 p-5">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <p className="font-bold">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{text}</p>
+        </div>
+        <Button className="rounded-2xl font-bold" variant={button === "Review Resources" ? "default" : "outline"} onClick={onClick}>
+          {button}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

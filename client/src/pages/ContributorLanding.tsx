@@ -51,7 +51,7 @@ export default function ContributorLanding() {
   return (
     <ContributorPortalShell>
       <div className="bg-[linear-gradient(180deg,rgba(22,163,74,0.08),rgba(255,255,255,0)_38%)]">
-        <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:py-20">
+        <section className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:py-20">
           <div>
             <div className="mb-5 inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-primary">
               Student-powered academic library
@@ -96,7 +96,7 @@ export default function ContributorLanding() {
           </Card>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-primary">Resource categories</p>
@@ -118,7 +118,7 @@ export default function ContributorLanding() {
           </div>
         </section>
 
-        <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <section id="how-it-works" className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
           <Card className="border-border/60 bg-background shadow-sm">
             <CardContent className="p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-widest text-primary">How it works</p>

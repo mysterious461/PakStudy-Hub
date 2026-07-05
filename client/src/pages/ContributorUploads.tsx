@@ -44,8 +44,8 @@ export default function ContributorUploads() {
   return (
     <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
-      <header className="border-b bg-background shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+      <div className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
         <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
           <Home className="mr-2 h-4 w-4" />
           Back to Home
@@ -59,9 +59,9 @@ export default function ContributorUploads() {
           Add
         </Button>
         </div>
-      </header>
+      </div>
 
-      <div className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
         {isLoading ? (
           <State icon={Loader2} title="Loading uploads" text="Checking your submitted resources." spin />
         ) : hasError ? (

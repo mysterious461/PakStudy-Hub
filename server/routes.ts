@@ -24,7 +24,7 @@ import { logEvent } from "./analytics";
 import { createNotePurchaseIntent, createWalletTopUpIntent, requireStripe, stripe } from "./payments";
 import { storage } from "./storage";
 import { saveUploadedFile, upload } from "./uploads";
-import { getFirebaseAdminDiagnostics } from "./firebaseAdmin";
+import { FieldValue, db, getFirebaseAdminDiagnostics, toDate } from "./firebaseAdmin";
 
 function trackEvent(eventName: string, userId: string | undefined, properties: Record<string, unknown> = {}) {
   void logEvent(eventName, userId, properties);
@@ -115,6 +115,68 @@ function validateContributorFile(file: Express.Multer.File) {
   }
 }
 
+const userProfilePatchSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  university: z.string().trim().max(160).optional(),
+  department: z.string().trim().max(160).optional(),
+  degree: z.string().trim().max(160).optional(),
+  grade: z.string().trim().max(80).optional(),
+  bio: z.string().trim().max(500).optional(),
+});
+
+type AuthenticatedUser = NonNullable<Request["user"]>;
+
+function normalizeUserProfile(id: string, data: Record<string, any>) {
+  const role = data.role === "Admin" || data.role === "Moderator" ? data.role : "Student";
+  return {
+    id,
+    uid: data.uid || id,
+    email: data.email || "",
+    name: data.name || data.email?.split("@")[0] || "Student Contributor",
+    role,
+    reputation: Number(data.reputation || 0),
+    isBanned: Boolean(data.isBanned),
+    university: data.university || "",
+    department: data.department || "",
+    degree: data.degree || data.track || "",
+    grade: data.grade || "",
+    bio: data.bio || "",
+    createdAt: toDate(data.createdAt).toISOString(),
+    updatedAt: data.updatedAt ? toDate(data.updatedAt).toISOString() : undefined,
+  };
+}
+
+async function getOrCreateUserProfile(user: AuthenticatedUser) {
+  const ref = db.collection("users").doc(user.uid);
+  const snapshot = await ref.get();
+
+  if (!snapshot.exists) {
+    await ref.set({
+      uid: user.uid,
+      email: user.email || `${user.uid}@firebase.local`,
+      name: user.name || user.email?.split("@")[0] || "Student Contributor",
+      role: "Student",
+      reputation: 0,
+      isBanned: false,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } else {
+    const data = snapshot.data() || {};
+    const missingCoreFields = !data.uid || !data.email || !data.name;
+    if (missingCoreFields) {
+      await ref.set({
+        uid: data.uid || user.uid,
+        email: data.email || user.email || `${user.uid}@firebase.local`,
+        name: data.name || user.name || user.email?.split("@")[0] || "Student Contributor",
+      }, { merge: true });
+    }
+  }
+
+  const updated = await ref.get();
+  return normalizeUserProfile(updated.id, updated.data() || {});
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -199,11 +261,32 @@ export async function registerRoutes(
     requireAuth,
     asyncRoute(async (req) => {
       const user = currentUser(req);
-      return storage.upsertUser({
-        id: user.uid,
-        email: user.email || `${user.uid}@firebase.local`,
-        name: user.name || user.email?.split("@")[0] || "Student",
-      });
+      return getOrCreateUserProfile(user);
+    }, "/api/user/profile"),
+  );
+
+  app.patch(
+    "/api/user/profile",
+    requireAuth,
+    asyncRoute(async (req) => {
+      const user = currentUser(req);
+      const input = parseBody(userProfilePatchSchema, req);
+      const existing = await getOrCreateUserProfile(user);
+      await db.collection("users").doc(user.uid).set({
+        uid: user.uid,
+        email: existing.email || user.email || `${user.uid}@firebase.local`,
+        name: input.name ?? existing.name,
+        university: input.university ?? existing.university,
+        department: input.department ?? existing.department,
+        degree: input.degree ?? existing.degree,
+        track: input.degree ?? existing.degree,
+        grade: input.grade ?? existing.grade,
+        bio: input.bio ?? existing.bio,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      const updated = await db.collection("users").doc(user.uid).get();
+      return normalizeUserProfile(updated.id, updated.data() || {});
     }, "/api/user/profile"),
   );
 
