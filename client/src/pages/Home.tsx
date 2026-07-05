@@ -16,6 +16,17 @@ import logoImage from "@assets/generated_images/minimalist_education_logo_with_b
 
 const CATEGORIES = ["All", "Math", "Physics", "Chemistry", "Computer", "English", "Urdu"];
 
+async function readQuestionsResponse(res: Response) {
+  const contentType = res.headers.get("content-type") || "";
+
+  if (!res.ok || !contentType.includes("application/json")) {
+    throw new Error("Questions are temporarily unavailable. Please refresh in a moment.");
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
 export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,12 +70,11 @@ export default function Home() {
     const loadPosts = async () => {
       try {
         const res = await fetch("/api/questions", { credentials: "include" });
-        if (!res.ok) throw new Error(await res.text());
-        setPosts(await res.json());
+        setPosts(await readQuestionsResponse(res));
       } catch (error: any) {
         toast({
           title: "Could not load questions",
-          description: error.message,
+          description: error.message || "Please refresh in a moment.",
           variant: "destructive",
         });
       } finally {

@@ -33,7 +33,7 @@ import ContributorUploads from "@/pages/ContributorUploads";
 
 function Router() {
   const [location] = useLocation();
-  const isContributorPortal = location === "/contribute" || location.startsWith("/contributors");
+  const isContributorPortal = location === "/" || location === "/contribute" || location.startsWith("/contributors");
 
   if (location.startsWith("/auth?")) {
     return (
@@ -46,6 +46,7 @@ function Router() {
   if (isContributorPortal) {
     return (
       <Switch>
+        <Route path="/" component={ContributorLanding} />
         <Route path="/contribute" component={ContributorLanding} />
         <Route path="/contributors" component={ContributorLanding} />
         <Route path="/contributors/dashboard" component={ContributorDashboard} />
