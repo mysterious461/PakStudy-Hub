@@ -35,8 +35,10 @@ Set these on the Cloud Run service:
 NODE_ENV=production
 FIREBASE_PROJECT_ID=pakstudy-hub-d418b
 GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b
-FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app
+FIREBASE_STORAGE_BUCKET=<exact bucket from Firebase Console > Build > Storage>
 ```
+
+Copy the exact bucket name from Firebase Console > Build > Storage. Common values are `pakstudy-hub-d418b.appspot.com` and `pakstudy-hub-d418b.firebasestorage.app`. If uploads fail with `The specified bucket does not exist`, this value is wrong or Firebase Storage has not been initialized.
 
 Authentication for Firebase Admin SDK:
 
@@ -67,7 +69,7 @@ gcloud run deploy pakstudy-hub-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app,PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
+  --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=<exact-storage-bucket>,PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
 ```
 
 If you use `FIREBASE_SERVICE_ACCOUNT_JSON`, store it as a secret instead of passing it directly on the command line:

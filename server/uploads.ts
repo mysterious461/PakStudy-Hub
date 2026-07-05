@@ -32,16 +32,28 @@ export async function saveUploadedFile(userId: string, file: Express.Multer.File
   const path = `${folder}/${userId}/${Date.now()}-${randomUUID()}.${extension}`;
   const storageFile = bucket.file(path);
 
-  await storageFile.save(file.buffer, {
-    metadata: {
-      contentType: file.mimetype,
+  try {
+    await storageFile.save(file.buffer, {
       metadata: {
-        originalName: file.originalname,
-        ownerId: userId,
+        contentType: file.mimetype,
+        metadata: {
+          originalName: file.originalname,
+          ownerId: userId,
+        },
       },
-    },
-    resumable: false,
-  });
+      resumable: false,
+    });
+  } catch (error: any) {
+    const bucketName = process.env.FIREBASE_STORAGE_BUCKET || "the Firebase Admin default bucket";
+    const message = String(error?.message || "");
+    if (message.toLowerCase().includes("bucket") && message.toLowerCase().includes("exist")) {
+      throw Object.assign(
+        new Error(`Firebase Storage bucket "${bucketName}" was not found. Check Cloud Run FIREBASE_STORAGE_BUCKET and Firebase Console > Storage.`),
+        { status: 500 },
+      );
+    }
+    throw error;
+  }
 
   const [signedUrl] = await storageFile.getSignedUrl({
     action: "read",

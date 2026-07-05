@@ -15,6 +15,10 @@ on:
         description: Cloud Run runtime service account
         default: 41032167808-compute@developer.gserviceaccount.com
         required: true
+      storage_bucket:
+        description: Firebase Storage bucket name from Firebase Console > Storage
+        default: pakstudy-hub-d418b.appspot.com
+        required: true
 
 jobs:
   deploy-cloud-run:
@@ -96,6 +100,17 @@ jobs:
             echo "Artifact Registry repository cloud-run-source-deploy exists in ${{ inputs.region }}."
           fi
 
+      - name: Verify Firebase Storage bucket
+        run: |
+          if ! gcloud storage buckets describe "gs://${{ inputs.storage_bucket }}" --project pakstudy-hub-d418b >/dev/null 2>&1; then
+            echo "Missing Firebase Storage bucket: ${{ inputs.storage_bucket }}"
+            echo "Open Firebase Console > Build > Storage for project pakstudy-hub-d418b."
+            echo "If Storage is not set up, click Get started and create the default bucket."
+            echo "If Storage is already set up, copy the exact bucket name and rerun this workflow with that value."
+            exit 1
+          fi
+          echo "Firebase Storage bucket exists: ${{ inputs.storage_bucket }}"
+
       - name: Deploy backend to Cloud Run
         run: |
           gcloud run deploy "${{ inputs.service }}" \
@@ -105,7 +120,7 @@ jobs:
             --allow-unauthenticated \
             --service-account "${{ inputs.runtime_service_account }}" \
             --quiet \
-            --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app,PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
+            --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=${{ inputs.storage_bucket }},PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
 
       - name: Show service URL
         run: |

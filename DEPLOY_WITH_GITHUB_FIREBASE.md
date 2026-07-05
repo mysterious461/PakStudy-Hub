@@ -246,8 +246,10 @@ Required:
 NODE_ENV=production
 FIREBASE_PROJECT_ID=pakstudy-hub-d418b
 GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b
-FIREBASE_STORAGE_BUCKET=pakstudy-hub-d418b.firebasestorage.app
+FIREBASE_STORAGE_BUCKET=<exact bucket from Firebase Console > Build > Storage>
 ```
+
+For many Firebase projects this is `pakstudy-hub-d418b.appspot.com`; newer projects may show `pakstudy-hub-d418b.firebasestorage.app`. Use the exact bucket shown in Firebase Console. If contributor upload returns `The specified bucket does not exist`, this value is wrong or Firebase Storage has not been initialized yet.
 
 Firebase Admin credentials:
 
@@ -323,6 +325,7 @@ Use GitHub Actions:
 ```text
 service = pakstudy-hub-api
 region = us-central1
+storage_bucket = exact bucket from Firebase Console > Build > Storage
 ```
 
 The backend already listens on `process.env.PORT`, which Cloud Run provides.
