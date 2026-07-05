@@ -288,8 +288,10 @@ export class FirestoreStorage implements IStorage {
     if (filters.subject) query = query.where("subject", "==", filters.subject);
     if (filters.unanswered) query = query.where("commentsCount", "==", 0);
 
-    const snap = await query.orderBy("createdAt", "desc").limit(100).get();
-    const questions = snap.docs.map((doc) => normalizeQuestion(doc.id, doc.data()));
+    const snap = await query.limit(100).get();
+    const questions = snap.docs
+      .map((doc) => normalizeQuestion(doc.id, doc.data()))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     if (!filters.search) return questions;
     const search = filters.search.toLowerCase();
     return questions.filter((question) => `${question.title} ${question.content} ${question.subject}`.toLowerCase().includes(search));
