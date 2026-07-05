@@ -176,6 +176,40 @@ Artifact Registry Administrator
 
 After the repository exists, the deploy service account typically only needs permissions to upload/read artifacts during Cloud Build. The workflow now checks for this repository before deployment and emits a warning if it is missing, then continues so Cloud Run can create it when the CI service account has `Artifact Registry Administrator`.
 
+### Fix `cloudbuild.builds.create` during Cloud Run deploy
+
+If Cloud Run deploy fails with:
+
+```text
+Permission 'cloudbuild.builds.create' denied
+```
+
+grant the CI service account permission to create Cloud Build jobs.
+
+In Google Cloud Console:
+
+1. Go to IAM & Admin > IAM.
+2. Find this principal:
+
+```text
+gcp-service-account-json@pakstudy-hub-d418b.iam.gserviceaccount.com
+```
+
+3. Edit principal.
+4. Add role:
+
+```text
+Cloud Build Editor
+```
+
+The source-based Cloud Run deploy command uses Cloud Build behind the scenes:
+
+```bash
+gcloud run deploy pakstudy-hub-api --source .
+```
+
+So the deploy service account needs `cloudbuild.builds.create`. If you prefer a narrower role, use a custom IAM role that includes `cloudbuild.builds.create`, but `Cloud Build Editor` is the simplest setup path.
+
 If this secret is missing or empty, the workflows stop at the `Verify Google auth secret` step with a clear message before calling `google-github-actions/auth`.
 
 If Firebase Hosting deploy fails with:
