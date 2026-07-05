@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Award, CheckCircle, Clock, FileText, Loader2, UploadCloud, XCircle } from "lucide-react";
+import { Award, CheckCircle, Clock, FileText, Home, Loader2, UploadCloud, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,13 +46,16 @@ export default function ContributorDashboard() {
   return (
     <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
-      <header className="px-4 sm:px-6 py-5 bg-background border-b flex items-center gap-4 shadow-sm">
-        <Button variant="ghost" size="icon" className="-ml-2 hover:bg-muted/50" onClick={() => setLocation("/contributors")}>
-          <ArrowLeft className="w-6 h-6" />
+      <header className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+        <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+          <Home className="mr-2 h-4 w-4" />
+          Back to Home
         </Button>
         <div className="min-w-0">
           <h1 className="text-lg font-bold truncate">Contributor Portal</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Resource Library</p>
+        </div>
         </div>
       </header>
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle, FileUp, Loader2, UploadCloud } from "lucide-react";
+import { CheckCircle, FileUp, Home, Info, Loader2, UploadCloud } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,6 +57,7 @@ export default function ContributorUpload() {
   const [form, setForm] = useState<UploadForm>(initialForm);
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     if (!auth.currentUser) setLocation("/auth?returnTo=/contributors/upload");
@@ -129,8 +130,8 @@ export default function ContributorUpload() {
       setForm(initialForm);
       setFile(null);
       formElement.reset();
+      setIsSubmitted(true);
       toast({ title: "Submitted for review", description: "Your resource is now pending admin approval." });
-      setLocation("/contributors/uploads");
     } catch (error: any) {
       toast({ title: "Could not submit", description: error.message || "Please check your fields and try again.", variant: "destructive" });
     } finally {
@@ -140,26 +141,47 @@ export default function ContributorUpload() {
 
   return (
     <ContributorPortalShell>
-    <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
-      <header className="px-4 sm:px-6 py-5 bg-background border-b flex items-center gap-4 shadow-sm">
-        <Button variant="ghost" size="icon" className="-ml-2 hover:bg-muted/50" onClick={() => setLocation("/contributors/dashboard")}>
-          <ArrowLeft className="w-6 h-6" />
+    <div className="min-h-[calc(100vh-170px)] bg-muted/10">
+      <header className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+        <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+          <Home className="mr-2 h-4 w-4" />
+          Back to Home
         </Button>
         <div>
-          <h1 className="text-lg font-bold">Upload Resource</h1>
+          <h1 className="text-xl font-black">Upload Resource</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Pending review by default</p>
+        </div>
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {isSubmitted ? (
+          <Card className="mx-auto max-w-2xl border-border/60 shadow-sm">
+            <CardContent className="p-8 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+                <CheckCircle className="h-8 w-8" />
+              </div>
+              <h2 className="text-2xl font-black">Submitted for Review</h2>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
+                Thanks for contributing. Your resource is now in the moderation queue and will appear publicly after approval.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Button className="h-12 rounded-2xl font-bold" onClick={() => setLocation("/contributors/uploads")}>Go to My Uploads</Button>
+                <Button variant="outline" className="h-12 rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>Back to Home</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+        <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-5">
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="University"><Input value={form.university} onChange={(event) => updateField("university", event.target.value)} required /></Field>
-              <Field label="Department"><Input value={form.department} onChange={(event) => updateField("department", event.target.value)} required /></Field>
-              <Field label="Degree"><Input value={form.degree} onChange={(event) => updateField("degree", event.target.value)} required /></Field>
-              <Field label="Semester"><Input value={form.semester} onChange={(event) => updateField("semester", event.target.value)} required /></Field>
-              <Field label="Course"><Input value={form.course} onChange={(event) => updateField("course", event.target.value)} required /></Field>
+              <Field label="University"><Input placeholder="National University of Sciences and Technology" value={form.university} onChange={(event) => updateField("university", event.target.value)} required /></Field>
+              <Field label="Department"><Input placeholder="School of Electrical Engineering" value={form.department} onChange={(event) => updateField("department", event.target.value)} required /></Field>
+              <Field label="Degree"><Input placeholder="BS Computer Science" value={form.degree} onChange={(event) => updateField("degree", event.target.value)} required /></Field>
+              <Field label="Semester"><Input placeholder="4th semester" value={form.semester} onChange={(event) => updateField("semester", event.target.value)} required /></Field>
+              <Field label="Course"><Input placeholder="CS-201 Data Structures" value={form.course} onChange={(event) => updateField("course", event.target.value)} required /></Field>
               <Field label="Resource Type">
                 <Select value={form.resourceType} onValueChange={(value) => updateField("resourceType", value)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -179,9 +201,9 @@ export default function ContributorUpload() {
 
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-5 space-y-4">
-              <Field label="Title"><Input value={form.title} onChange={(event) => updateField("title", event.target.value)} required /></Field>
+              <Field label="Title"><Input placeholder="Solved Midterm 2024 or Lecture 1 Notes" value={form.title} onChange={(event) => updateField("title", event.target.value)} required /></Field>
               <Field label="Description">
-                <Textarea className="min-h-28 resize-none" value={form.description} onChange={(event) => updateField("description", event.target.value)} required />
+                <Textarea placeholder="Briefly describe what this resource contains and who it can help." className="min-h-28 resize-none" value={form.description} onChange={(event) => updateField("description", event.target.value)} required />
               </Field>
               <Field label="Tags">
                 <Input value={form.tags} onChange={(event) => updateField("tags", event.target.value)} placeholder="calculus, midterm, solved" />
@@ -213,7 +235,25 @@ export default function ContributorUpload() {
               </Button>
             </CardContent>
           </Card>
+          </div>
+          <aside className="space-y-4">
+            <Card className="border-border/60 shadow-sm lg:sticky lg:top-24">
+              <CardContent className="p-5">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Info className="h-5 w-5" />
+                </div>
+                <h2 className="font-black">Upload Guidelines</h2>
+                <ul className="mt-4 space-y-3 text-sm leading-6 text-muted-foreground">
+                  <li>Upload only your own notes or material you have permission to share.</li>
+                  <li>Accepted file types: PDF, PNG, JPG.</li>
+                  <li>PDF max 10 MB. Images max 3 MB.</li>
+                  <li>All uploads are reviewed before publication.</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </aside>
         </form>
+        )}
       </div>
     </div>
     </ContributorPortalShell>

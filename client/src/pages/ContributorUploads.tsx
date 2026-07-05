@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, ExternalLink, FileText, Loader2, UploadCloud } from "lucide-react";
+import { ExternalLink, FileText, Home, Loader2, UploadCloud } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,11 @@ export default function ContributorUploads() {
   return (
     <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
-      <header className="px-4 sm:px-6 py-5 bg-background border-b flex items-center gap-4 shadow-sm">
-        <Button variant="ghost" size="icon" className="-ml-2 hover:bg-muted/50" onClick={() => setLocation("/contributors/dashboard")}>
-          <ArrowLeft className="w-6 h-6" />
+      <header className="border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+        <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+          <Home className="mr-2 h-4 w-4" />
+          Back to Home
         </Button>
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-bold truncate">My Uploads</h1>
@@ -56,6 +58,7 @@ export default function ContributorUploads() {
           <UploadCloud className="w-4 h-4 mr-2" />
           Add
         </Button>
+        </div>
       </header>
 
       <div className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
@@ -73,13 +76,18 @@ export default function ContributorUploads() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
                       <h2 className="font-bold text-base leading-snug">{resource.title}</h2>
-                      <p className="text-xs text-muted-foreground mt-1">{resource.course} · {resource.university}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{resource.course} / {resource.university}</p>
                     </div>
                     <Badge variant="outline" className={statusStyles[resource.status] || statusStyles.pending}>
                       {labelStatus(resource.status)}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{resource.description || "No description provided."}</p>
+                  <div className="mb-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                    <span><strong className="text-foreground">Type:</strong> {labelType(resource.resourceType)}</span>
+                    <span><strong className="text-foreground">Uploaded:</strong> {formatDate(resource.createdAt)}</span>
+                    <span><strong className="text-foreground">Course:</strong> {resource.course}</span>
+                  </div>
                   {(resource.status === "rejected" || resource.status === "changes_requested") && resource.rejectionReason && (
                     <div className="rounded-xl bg-red-500/5 border border-red-500/10 p-3 mb-4">
                       <p className="text-xs font-bold text-red-700 uppercase tracking-widest mb-1">Review note</p>
@@ -104,6 +112,16 @@ export default function ContributorUploads() {
 function labelStatus(status: string) {
   if (status === "changes_requested") return "Changes requested";
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
+}
+
+function labelType(type: string) {
+  return type ? type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "Resource";
+}
+
+function formatDate(value: unknown) {
+  const date = value ? new Date(value as string) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Recently";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function State({ icon: Icon, title, text, action, spin }: { icon: any; title: string; text: string; action?: () => void; spin?: boolean }) {

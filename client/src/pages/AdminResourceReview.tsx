@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle, ExternalLink, FileText, Loader2, MessageSquareWarning, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, ExternalLink, FileText, Home, Loader2, MessageSquareWarning, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,18 +65,24 @@ export default function AdminResourceReview() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-muted/10 overflow-hidden">
-      <header className="px-6 py-4 bg-background sticky top-0 z-10 border-b flex items-center gap-4 shadow-sm">
+    <div className="min-h-screen bg-muted/10">
+      <header className="sticky top-0 z-10 border-b bg-background shadow-sm">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
         <Button variant="ghost" size="icon" className="-ml-2 hover:bg-muted/50" onClick={() => setLocation("/admin")}>
           <ArrowLeft className="w-6 h-6" />
         </Button>
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-lg font-bold">Resource Review</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Admin queue</p>
         </div>
+        <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+          <Home className="mr-2 h-4 w-4" />
+          Back to Home
+        </Button>
+        </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-24">
+      <div className="mx-auto max-w-6xl p-4 pb-24 sm:p-6">
         {isLoading ? (
           <State icon={Loader2} title="Loading review queue" text="Checking pending resources." spin />
         ) : !canAccess ? (
@@ -84,7 +90,7 @@ export default function AdminResourceReview() {
         ) : resources.length === 0 ? (
           <State icon={CheckCircle} title="Nothing pending" text="All submitted resources have been reviewed." />
         ) : (
-          <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
             {resources.map((resource) => (
               <Card key={resource.id} className="border-border/50 shadow-sm">
                 <CardContent className="p-5">
@@ -100,7 +106,7 @@ export default function AdminResourceReview() {
                     <Meta label="Department" value={resource.department} />
                     <Meta label="Course" value={resource.course} />
                     <Meta label="Type" value={labelType(resource.resourceType)} />
-                    <Meta label="File" value={`${resource.fileName || "Resource"} · ${formatSize(resource.fileSize || 0)}`} />
+                    <Meta label="File" value={`${resource.fileName || "Resource"} / ${formatSize(resource.fileSize || 0)}`} />
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{resource.description}</p>
                   <div className="grid grid-cols-1 gap-2">
@@ -108,15 +114,18 @@ export default function AdminResourceReview() {
                       <ExternalLink className="w-4 h-4 mr-2" />
                       View File
                     </Button>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                       <Button className="rounded-xl" onClick={() => submitReview(resource, "approved")}>
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="mr-2 w-4 h-4" />
+                        Approve
                       </Button>
                       <Button variant="outline" className="rounded-xl text-blue-700" onClick={() => openNoteDialog(resource, "changes_requested")}>
-                        <MessageSquareWarning className="w-4 h-4" />
+                        <MessageSquareWarning className="mr-2 w-4 h-4" />
+                        Changes
                       </Button>
                       <Button variant="outline" className="rounded-xl text-red-700" onClick={() => openNoteDialog(resource, "rejected")}>
-                        <XCircle className="w-4 h-4" />
+                        <XCircle className="mr-2 w-4 h-4" />
+                        Reject
                       </Button>
                     </div>
                   </div>

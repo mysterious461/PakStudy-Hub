@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, LayoutDashboard, LogIn, UploadCloud, User, Files } from "lucide-react";
+import { BookOpen, GraduationCap, HelpCircle, Home, LayoutDashboard, LogIn, UploadCloud, User, Files } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
@@ -28,15 +28,17 @@ export function ContributorPortalShell({ children }: ContributorPortalShellProps
           </button>
 
           <nav className="hidden items-center gap-1 md:flex">
-            <NavButton icon={BookOpen} label="Contribute" onClick={() => setLocation("/contribute")} />
+            <NavButton icon={Home} label="Home" onClick={() => setLocation("/contribute")} />
+            <NavButton icon={BookOpen} label="Contribute" onClick={() => setLocation(user ? "/contributors/upload" : "/auth?returnTo=/contributors/upload")} />
             <NavButton icon={Files} label="My Uploads" onClick={() => setLocation(user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads")} />
             <NavButton icon={LayoutDashboard} label="Dashboard" onClick={() => setLocation(user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")} />
+            <NavButton icon={User} label="Profile" onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/profile")} />
           </nav>
 
           <Button
             variant={user ? "outline" : "default"}
             className="rounded-2xl font-bold"
-            onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/contributors/dashboard")}
+            onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/profile")}
           >
             {user ? <User className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}
             <span className="hidden sm:inline">{user ? "Profile" : "Sign In / Sign Up"}</span>
@@ -45,18 +47,21 @@ export function ContributorPortalShell({ children }: ContributorPortalShellProps
         </div>
 
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:hidden">
-          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation("/contribute")}>Contribute</Button>
+          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation("/contribute")}>Home</Button>
+          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/upload" : "/auth?returnTo=/contributors/upload")}>Contribute</Button>
           <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads")}>My Uploads</Button>
           <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")}>Dashboard</Button>
+          <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setLocation(user ? "/profile" : "/auth?returnTo=/profile")}>Profile</Button>
         </div>
       </header>
 
       <main>{children}</main>
 
       <footer className="border-t border-border/60 bg-background">
-        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm text-muted-foreground sm:grid-cols-4 sm:px-6">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm text-muted-foreground sm:grid-cols-5 sm:px-6">
           <FooterLink label="About PakStudy Hub" />
           <FooterLink label="Contributor Guidelines" />
+          <FooterLink label="Help Center" />
           <FooterLink label="Contact" />
           <FooterLink label="Privacy Policy" />
         </div>
@@ -75,5 +80,11 @@ function NavButton({ icon: Icon, label, onClick }: { icon: any; label: string; o
 }
 
 function FooterLink({ label }: { label: string }) {
-  return <button className="text-left font-semibold hover:text-primary">{label}</button>;
+  const Icon = label === "Help Center" ? HelpCircle : label === "About PakStudy Hub" ? GraduationCap : null;
+  return (
+    <button className="flex items-center gap-2 text-left font-semibold hover:text-primary">
+      {Icon ? <Icon className="h-4 w-4" /> : null}
+      {label}
+    </button>
+  );
 }

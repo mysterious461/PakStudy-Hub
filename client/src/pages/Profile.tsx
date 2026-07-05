@@ -1,569 +1,272 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Award, CalendarDays, Home, Loader2, LockKeyhole, LogOut, Save, UserRound } from "lucide-react";
 import { useLocation } from "wouter";
-import { BottomNav } from "@/components/layout/BottomNav";
-import { Button } from "@/components/ui/button";
+import { sendPasswordResetEmail, signOut, updateProfile as updateAuthProfile } from "firebase/auth";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { LogOut, Settings, Award, BookOpen, Edit, Save, X, User, Banknote, ArrowDownLeft, ArrowUpRight, CreditCard, Plus, Moon, Sun, UploadCloud, ShieldCheck } from "lucide-react";
-import { auth, db } from "@/lib/firebase";
-import { signOut, updateProfile } from "firebase/auth";
-import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { Textarea } from "@/components/ui/textarea";
+import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
+import { auth, db } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
+
+const initialProfile = {
+  name: "",
+  email: "",
+  university: "",
+  department: "",
+  degree: "",
+  grade: "",
+  bio: "",
+};
+
+const emptyStats = {
+  reputationPoints: 0,
+  badgeStatus: "Not started",
+  totalUploads: 0,
+  approvedUploads: 0,
+};
 
 export default function Profile() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const user = auth.currentUser;
-
+  const [profile, setProfile] = useState(initialProfile);
+  const [savedProfile, setSavedProfile] = useState<any>(null);
+  const [stats, setStats] = useState(emptyStats);
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    displayName: user?.displayName || "Student Name",
-    grade: "Matric",
-    track: "Pre-Engineering",
-    university: "",
-    bio: "",
-    subjects: [] as string[]
-  });
-
-  const [stats, setStats] = useState({ questions: 0, answers: 0, reputation: 0 });
-  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState("");
-  const [topUpCard, setTopUpCard] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const isAdminUser = profileData?.role === "Admin" || profileData?.role === "Moderator";
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check initial dark mode state
-    setIsDarkMode(document.documentElement.classList.contains('dark'));
-  }, []);
-
-  const toggleDarkMode = () => {
-    const root = document.documentElement;
-    if (isDarkMode) {
-      root.classList.remove('dark');
-    } else {
-      root.classList.add('dark');
+    if (!user) {
+      setLocation("/auth?returnTo=/profile");
+      return;
     }
-    setIsDarkMode(!isDarkMode);
-    toast({
-      title: "Theme Changed",
-      description: `Dark mode ${!isDarkMode ? 'enabled' : 'disabled'}.`
+
+    void apiRequest("POST", "/api/users/me").catch(() => undefined);
+    void apiRequest("GET", "/api/contributor/stats")
+      .then((response) => response.json())
+      .then(setStats)
+      .catch(() => setStats(emptyStats));
+
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+      const data = snapshot.exists() ? snapshot.data() : {};
+      const nextProfile = {
+        name: data.name || user.displayName || "",
+        email: data.email || user.email || "",
+        university: data.university || "",
+        department: data.department || "",
+        degree: data.degree || data.track || "",
+        grade: data.grade || "",
+        bio: data.bio || "",
+      };
+      setProfile(nextProfile);
+      setSavedProfile({ ...data, createdAt: data.createdAt });
+      setIsLoading(false);
     });
-  };
-
-  useEffect(() => {
-    if (!user) return;
-
-    void apiRequest("POST", "/api/users/me").catch((error) => console.error("Could not sync backend user:", error));
-
-    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setProfileData(data);
-        setFormData({
-          displayName: data.name || user.displayName || "Student Name",
-          grade: data.grade || "Matric",
-          track: data.track || "Pre-Engineering",
-          university: data.university || "",
-          bio: data.bio || "",
-          subjects: data.subjects || []
-        });
-        if (data.reputation !== undefined) {
-          setStats(prev => ({ ...prev, reputation: data.reputation }));
-        }
-      }
-    });
-
-    const fetchStats = async () => {
-      try {
-        const qSnapshot = await getDocs(query(collection(db, "questions"), where("userId", "==", user.uid)));
-        setStats(prev => ({ ...prev, questions: qSnapshot.size, answers: qSnapshot.size * 2 + 3, reputation: prev.reputation || (qSnapshot.size * 10 + 25) }));
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    
-    fetchStats();
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, setLocation]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    setLocation("/auth");
+  const updateField = (field: keyof typeof initialProfile, value: string) => {
+    setProfile((current) => ({ ...current, [field]: value }));
   };
 
   const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
     try {
-      if (user) {
-        await updateProfile(user, { displayName: formData.displayName });
-        await updateDoc(doc(db, "users", user.uid), {
-          name: formData.displayName,
-          grade: formData.grade,
-          track: formData.track,
-          university: formData.university,
-          bio: formData.bio,
-          subjects: formData.subjects
-        });
-        await apiRequest("PATCH", "/api/users/me/profile", {
-          name: formData.displayName,
-          grade: formData.grade,
-          track: formData.track,
-          university: formData.university,
-          bio: formData.bio,
-          subjects: formData.subjects,
-        });
-      }
+      await updateAuthProfile(user, { displayName: profile.name.trim() || user.displayName });
+      await setDoc(doc(db, "users", user.uid), {
+        name: profile.name.trim(),
+        email: profile.email || user.email,
+        university: profile.university.trim(),
+        department: profile.department.trim(),
+        degree: profile.degree.trim(),
+        grade: profile.grade.trim(),
+        track: profile.degree.trim(),
+        bio: profile.bio.trim(),
+        updatedAt: new Date(),
+      }, { merge: true });
+      await apiRequest("PATCH", "/api/users/me/profile", {
+        name: profile.name.trim(),
+        university: profile.university.trim(),
+        grade: profile.grade.trim(),
+        track: profile.degree.trim(),
+        bio: profile.bio.trim(),
+      });
       setIsEditing(false);
-      toast({
-        title: "Profile Updated",
-        description: "Your changes have been saved successfully.",
-      });
+      toast({ title: "Profile updated", description: "Your contributor profile has been saved." });
     } catch (error: any) {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Profile not saved", description: error.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleTopUp = async () => {
-    toast({ title: "Processing Top Up", description: "Securely adding funds via App Pay..." });
-    try {
-      if (!user) throw new Error("Please sign in first.");
-      const res = await apiRequest("POST", "/api/wallet/top-up", {
-        amount: Number(topUpAmount),
-      });
-      const payment = await res.json();
-      if (payment.checkoutUrl) {
-        window.location.href = payment.checkoutUrl;
-        return;
-      }
-      toast({ title: "Payment Started", description: `Complete the secure payment to add Rs. ${topUpAmount}.` });
-      setIsTopUpOpen(false);
-      setTopUpAmount("");
-      setTopUpCard("");
-    } catch (error: any) {
-      toast({ title: "Top Up Failed", description: error.message, variant: "destructive" });
-    }
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    await sendPasswordResetEmail(auth, user.email);
+    toast({ title: "Password reset email sent", description: "Firebase Auth will handle the password change securely." });
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setLocation("/contribute");
   };
 
   return (
-    <div className="h-full flex flex-col bg-muted/10 relative overflow-hidden">
-      <div className="h-40 w-full absolute top-0 left-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/80 to-primary/20 mix-blend-multiply z-10" />
-        <img src="/src/assets/images/header-bg.jpg" alt="Background" className="w-full h-full object-cover" />
-      </div>
-      
-      <div className="flex-1 overflow-y-auto pb-32 z-10 px-6 pt-20">
-        <div className="bg-background/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 mb-6 border border-border/50 relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -translate-y-10 translate-x-10" />
-           
-           {!isEditing ? (
-             <Button 
-               variant="ghost" 
-               size="icon" 
-               className="absolute top-4 right-4 text-muted-foreground hover:bg-muted/50 rounded-full"
-               onClick={() => setIsEditing(true)}
-             >
-               <Edit className="w-4 h-4" />
-             </Button>
-           ) : (
-             <div className="absolute top-4 right-4 flex gap-1">
-               <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-full" onClick={() => setIsEditing(false)}>
-                 <X className="w-4 h-4" />
-               </Button>
-               <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 rounded-full" onClick={handleSave}>
-                 <Save className="w-4 h-4" />
-               </Button>
-             </div>
-           )}
+    <ContributorPortalShell>
+      <div className="min-h-[calc(100vh-170px)] bg-muted/10">
+        <header className="border-b bg-background shadow-sm">
+          <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-5 sm:px-6">
+            <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+              <Home className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+            <div>
+              <h1 className="text-xl font-black">Contributor Profile</h1>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Academic identity</p>
+            </div>
+          </div>
+        </header>
 
-           <div className="flex flex-col items-center relative z-10">
-             <Avatar className="w-28 h-28 border-4 border-background shadow-xl mb-5 ring-2 ring-primary/10">
-               <AvatarImage src={user?.photoURL || ""} />
-               <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
-                 {formData.displayName.charAt(0).toUpperCase() || "S"}
-               </AvatarFallback>
-             </Avatar>
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+          {isLoading ? (
+            <div className="flex min-h-80 items-center justify-center text-muted-foreground">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Loading profile
+            </div>
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
+              <Card className="border-border/60 shadow-sm">
+                <CardContent className="p-6 text-center">
+                  <Avatar className="mx-auto h-24 w-24 border-4 border-background shadow-lg">
+                    <AvatarImage src={user?.photoURL || ""} />
+                    <AvatarFallback className="bg-primary/10 text-3xl font-black text-primary">
+                      {(profile.name || user?.email || "C").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="mt-4 text-2xl font-black">{profile.name || "Student Contributor"}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{profile.email}</p>
+                  <Badge variant="outline" className="mt-4 rounded-full border-primary/20 bg-primary/10 px-4 py-1.5 text-primary">
+                    {stats.badgeStatus}
+                  </Badge>
 
-             {isEditing ? (
-               <div className="w-full space-y-5 mt-2 animate-in fade-in duration-300">
-                 <div className="space-y-2">
-                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Full Name</Label>
-                   <div className="relative">
-                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                     <Input 
-                       value={formData.displayName} 
-                       onChange={(e) => setFormData({...formData, displayName: e.target.value})}
-                       className="pl-10 h-12 bg-muted/50 border-none rounded-xl focus-visible:ring-1 ring-primary/30" 
-                     />
-                   </div>
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Education Level</Label>
-                     <Select value={formData.grade} onValueChange={(v) => setFormData({...formData, grade: v})}>
-                       <SelectTrigger className="bg-muted/50 border-none rounded-xl h-12 focus:ring-1 ring-primary/30">
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="Middle (8th)">Middle (8th)</SelectItem>
-                         <SelectItem value="Matriculation (Science)">Matriculation (Science)</SelectItem>
-                         <SelectItem value="Matriculation (Arts)">Matriculation (Arts)</SelectItem>
-                         <SelectItem value="Intermediate (Pre-Engineering)">Intermediate (Pre-Engineering)</SelectItem>
-                         <SelectItem value="Intermediate (Pre-Medical)">Intermediate (Pre-Medical)</SelectItem>
-                         <SelectItem value="Intermediate (ICS)">Intermediate (ICS)</SelectItem>
-                         <SelectItem value="Intermediate (I.Com)">Intermediate (I.Com)</SelectItem>
-                         <SelectItem value="Intermediate (FA)">Intermediate (FA)</SelectItem>
-                         <SelectItem value="Bachelors (BS/BSc/BA)">Bachelors (BS/BSc/BA)</SelectItem>
-                         <SelectItem value="Masters (MS/MPhil)">Masters (MS/MPhil)</SelectItem>
-                         <SelectItem value="Doctorate (PhD)">Doctorate (PhD)</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
-                   <div className="space-y-2">
-                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Track / Major</Label>
-                     <Select value={formData.track} onValueChange={(v) => setFormData({...formData, track: v})}>
-                       <SelectTrigger className="bg-muted/50 border-none rounded-xl h-12 focus:ring-1 ring-primary/30">
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="Pre-Engineering">Pre-Engineering</SelectItem>
-                         <SelectItem value="Pre-Medical">Pre-Medical</SelectItem>
-                         <SelectItem value="Computer Science">Computer Science</SelectItem>
-                         <SelectItem value="Arts/Humanities">Arts / Humanities</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
-                 </div>
-
-                 <div className="space-y-2">
-                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Bio</Label>
-                   <Input 
-                     value={formData.bio} 
-                     onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                     placeholder="A little bit about yourself"
-                     className="h-12 bg-muted/50 border-none rounded-xl focus-visible:ring-1 ring-primary/30" 
-                   />
-                 </div>
-
-                 <div className="space-y-2">
-                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">University / School</Label>
-                   <Input 
-                     value={formData.university} 
-                     onChange={(e) => setFormData({...formData, university: e.target.value})}
-                     placeholder="Enter your institution"
-                     className="h-12 bg-muted/50 border-none rounded-xl focus-visible:ring-1 ring-primary/30" 
-                   />
-                 </div>
-               </div>
-             ) : (
-               <div className="animate-in fade-in duration-300 flex flex-col items-center">
-                 <h2 className="text-2xl font-extrabold tracking-tight mb-1">{formData.displayName}</h2>
-                 <p className="text-muted-foreground text-sm font-medium mb-1.5">{user?.email || "student@example.com"}</p>
-                 <p className="text-sm text-primary font-semibold mb-3">{formData.university || "Add your university"}</p>
-                 {formData.bio && <p className="text-sm text-foreground/70 mb-5 text-center max-w-[85%] leading-relaxed">{formData.bio}</p>}
-                 
-                 <div className="flex gap-2 mb-6">
-                   <Badge variant="secondary" className="px-3 py-1.5 bg-accent/10 text-accent-foreground border-none font-medium">{formData.grade}</Badge>
-                   <Badge variant="secondary" className="px-3 py-1.5 bg-primary/10 text-primary border-none font-medium">{formData.track}</Badge>
-                 </div>
-               </div>
-             )}
-
-             <div className="grid grid-cols-3 gap-6 w-full border-t border-border/40 pt-6 mt-2 text-center">
-               <div className="bg-muted/30 p-3 rounded-2xl">
-                 <div className="text-2xl font-black text-foreground/90">{stats.questions}</div>
-                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Questions</div>
-               </div>
-               <div className="bg-muted/30 p-3 rounded-2xl">
-                 <div className="text-2xl font-black text-foreground/90">{stats.answers}</div>
-                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Answers</div>
-               </div>
-               <div className="bg-primary/10 p-3 rounded-2xl ring-1 ring-primary/20">
-                 <div className="text-2xl font-black text-primary">{stats.reputation}</div>
-                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mt-1">Reputation</div>
-               </div>
-             </div>
-           </div>
-        </div>
-
-        <div className="flex items-center justify-between mb-4 px-2 relative z-10 mt-8">
-          <h3 className="font-bold text-lg tracking-tight">Wallet</h3>
-          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">Active</Badge>
-        </div>
-        
-        <div className="space-y-3 relative z-10 mb-10">
-          <Card className="border-border/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden bg-background rounded-3xl">
-            <CardContent className="p-0">
-              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 flex flex-col justify-between border-b border-border/30 gap-4 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -translate-y-10 translate-x-10" />
-                <div className="flex items-center justify-between relative z-10">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Available Balance</p>
-                    <h4 className="text-4xl font-black text-foreground tracking-tight">Rs. 2,450</h4>
+                  <div className="mt-6 grid grid-cols-2 gap-3 text-left">
+                    <MiniStat label="Reputation" value={stats.reputationPoints} icon={Award} />
+                    <MiniStat label="Approved" value={stats.approvedUploads} icon={UserRound} />
                   </div>
-                  <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl text-primary shadow-sm border border-border/50">
-                    <Banknote className="w-7 h-7" />
+
+                  <div className="mt-5 rounded-2xl border border-border/60 bg-muted/20 p-4 text-left">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      <CalendarDays className="h-4 w-4" />
+                      Member since
+                    </div>
+                    <p className="font-semibold">{formatDate(savedProfile?.createdAt)}</p>
                   </div>
-                </div>
-                
-                <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="default" className="w-full rounded-xl mt-2 font-semibold">
-                      <Plus className="w-4 h-4 mr-2" /> Top Up Wallet
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px] rounded-2xl w-[90vw]">
-                    <DialogHeader>
-                      <DialogTitle>Top Up Wallet</DialogTitle>
-                      <DialogDescription>
-                        Add funds to your wallet securely using App Pay. 
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                      <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
-                        <h4 className="text-sm font-semibold text-primary mb-1">How it works</h4>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          Your payment is securely processed through App Pay. 
-                          The topped-up amount will be instantly available in your wallet 
-                          to purchase notes and other educational resources on the platform.
+                </CardContent>
+              </Card>
+
+              <div className="space-y-5">
+                <Card className="border-border/60 shadow-sm">
+                  <CardContent className="p-6">
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-lg font-black">Academic Details</h2>
+                        <p className="text-sm text-muted-foreground">Keep this accurate so reviewers understand your context.</p>
+                      </div>
+                      <Button variant={isEditing ? "default" : "outline"} className="rounded-2xl font-bold" onClick={() => isEditing ? void handleSave() : setIsEditing(true)} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {isEditing ? "Save Profile" : "Edit Profile"}
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <ProfileField label="Full name" value={profile.name} editing={isEditing} onChange={(value) => updateField("name", value)} />
+                      <ProfileField label="Email" value={profile.email} editing={false} onChange={() => undefined} />
+                      <ProfileField label="University" value={profile.university} editing={isEditing} placeholder="National University of Sciences and Technology" onChange={(value) => updateField("university", value)} />
+                      <ProfileField label="Department" value={profile.department} editing={isEditing} placeholder="School of Avionics and Electrical Engineering" onChange={(value) => updateField("department", value)} />
+                      <ProfileField label="Degree program" value={profile.degree} editing={isEditing} placeholder="MS Avionics Engineering" onChange={(value) => updateField("degree", value)} />
+                      <ProfileField label="Study level" value={profile.grade} editing={isEditing} placeholder="Undergraduate, Masters, PhD" onChange={(value) => updateField("grade", value)} />
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Bio</Label>
+                        {isEditing ? (
+                          <Textarea className="min-h-28 resize-none" value={profile.bio} placeholder="Tell other students what you study and what resources you like to share." onChange={(event) => updateField("bio", event.target.value)} />
+                        ) : (
+                          <div className="min-h-20 rounded-2xl border border-border/60 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
+                            {profile.bio || "No bio added yet."}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/60 shadow-sm">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <LockKeyhole className="h-5 w-5 text-primary" />
+                          <h2 className="font-black">Change Password</h2>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          Password changes are handled through Firebase Auth email reset.
                         </p>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Amount to add (Rs.)</Label>
-                        <Input 
-                          type="number"
-                          placeholder="e.g. 1000" 
-                          value={topUpAmount}
-                          onChange={(e) => setTopUpAmount(e.target.value)}
-                          className="h-12 bg-muted/50 border-none rounded-xl text-lg font-medium"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Select Payment Method</Label>
-                        <div className="h-12 bg-muted/50 border-none rounded-xl flex items-center px-3 opacity-70">
-                           <div className="flex items-center gap-2">
-                             <CreditCard className="w-4 h-4 text-blue-500" /> Credit / Debit Card (App Pay)
-                           </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <Label>Card Number</Label>
-                        <Input 
-                          placeholder="0000 0000 0000 0000" 
-                          value={topUpCard}
-                          onChange={(e) => setTopUpCard(e.target.value)}
-                          className="h-12 bg-muted/50 border-none rounded-xl"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 delay-75">
-                        <div className="space-y-2">
-                          <Label>Expiry Date</Label>
-                          <Input placeholder="MM/YY" className="h-12 bg-muted/50 border-none rounded-xl" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Security Code</Label>
-                          <Input placeholder="CVC" className="h-12 bg-muted/50 border-none rounded-xl" type="password" maxLength={3} />
-                        </div>
-                      </div>
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2 delay-100">
-                        <Label>Cardholder Name</Label>
-                        <Input placeholder="Name on card" className="h-12 bg-muted/50 border-none rounded-xl" />
-                      </div>
+                      <Button variant="outline" className="rounded-2xl font-bold" onClick={handlePasswordReset}>Send Reset Email</Button>
                     </div>
-                    <DialogFooter>
-                      <Button onClick={handleTopUp} className="w-full h-12 rounded-xl" disabled={!topUpAmount || !topUpCard}>
-                        {topUpAmount ? `Pay Rs. ${topUpAmount}` : "Enter Amount"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              <div className="p-5">
-                <h5 className="text-xs font-bold mb-4 uppercase tracking-widest text-muted-foreground">Recent Transactions</h5>
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-green-500/10 text-green-600 rounded-full">
-                        <ArrowDownLeft className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold leading-none mb-1">Sold: Calculus Notes</p>
-                        <p className="text-[11px] font-medium text-muted-foreground">Today, 2:30 PM</p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-sm text-green-600">+ Rs. 450</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-destructive/10 text-destructive rounded-full">
-                        <ArrowUpRight className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold leading-none mb-1">Bought: Physics Past Papers</p>
-                        <p className="text-[11px] font-medium text-muted-foreground">Yesterday, 11:15 AM</p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-sm text-destructive">- Rs. 200</span>
-                  </div>
-                </div>
-                <Button variant="outline" className="w-full mt-5 rounded-xl h-10 text-xs font-bold uppercase tracking-wider">
-                  View All History
+                  </CardContent>
+                </Card>
+
+                <Button variant="destructive" className="h-12 rounded-2xl font-bold" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Top Contributors</h3>
-        <Card className="border-border/50 shadow-sm mb-6 bg-background relative z-10">
-          <CardContent className="p-0">
-            <div className="p-4 space-y-4">
-              {[
-                { name: "Ali Khan", rep: 1250, badge: "🥇", initials: "AK", color: "bg-yellow-100 text-yellow-700" },
-                { name: "Sara Ahmed", rep: 980, badge: "🥈", initials: "SA", color: "bg-gray-200 text-gray-700" },
-                { name: "Hamza Malik", rep: 845, badge: "🥉", initials: "HM", color: "bg-orange-100 text-orange-700" }
-              ].map((contributor, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="w-10 h-10 border border-border">
-                        <AvatarFallback className={contributor.color + " font-bold"}>{contributor.initials}</AvatarFallback>
-                      </Avatar>
-                      <span className="absolute -bottom-1 -right-1 text-sm bg-background rounded-full leading-none">{contributor.badge}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">{contributor.name}</p>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Top Answerer</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-primary">{contributor.rep}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Rep</p>
-                  </div>
-                </div>
-              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        <h3 className="font-semibold mb-4 px-1 relative z-10 mt-6">Resources</h3>
-        <div className="space-y-3 relative z-10">
-          <Card 
-            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={() => setLocation("/library")}
-          >
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-sm">My Study Materials</h4>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={() => setLocation("/achievements")}
-          >
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                <Award className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-sm">Achievements</h4>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="border-border/50 shadow-sm cursor-pointer hover:bg-primary/5 transition-all active:scale-[0.98]"
-            onClick={() => setLocation("/contribute")}
-          >
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                <UploadCloud className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-sm">Contributor Portal</h4>
-                <p className="text-xs text-muted-foreground">Upload resources for pre-launch review</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={() => setLocation("/settings")}
-          >
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
-                <Settings className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-sm">Settings</h4>
-              </div>
-            </CardContent>
-          </Card>
-
-          {isAdminUser && (
-            <Card 
-              className="border-border/50 shadow-sm cursor-pointer hover:bg-red-500/10 transition-all active:scale-[0.98] mt-4 border-red-500/30"
-              onClick={() => setLocation("/admin")}
-            >
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-sm text-red-600">Admin Dashboard</h4>
-                  <p className="text-xs text-red-600/70">Content moderation & management</p>
-                </div>
-              </CardContent>
-            </Card>
           )}
-
-          <Card 
-            className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-            onClick={toggleDarkMode}
-          >
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg">
-                  {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-sm">Dark Mode</h4>
-                </div>
-              </div>
-              <div className={`w-11 h-6 rounded-full transition-colors flex items-center px-1 ${isDarkMode ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Button 
-            variant="destructive" 
-            className="w-full mt-6 h-12 rounded-xl shadow-lg shadow-destructive/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
         </div>
-        <div className="h-10" />
       </div>
+    </ContributorPortalShell>
+  );
+}
+
+function ProfileField({ label, value, editing, placeholder, onChange }: { label: string; value: string; editing: boolean; placeholder?: string; onChange: (value: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</Label>
+      {editing ? (
+        <Input value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      ) : (
+        <div className="flex min-h-10 items-center rounded-xl border border-border/60 bg-muted/20 px-3 text-sm font-semibold">
+          {value || "Not added"}
+        </div>
+      )}
     </div>
   );
+}
+
+function MiniStat({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background p-4">
+      <Icon className="mb-3 h-5 w-5 text-primary" />
+      <p className="text-2xl font-black">{value}</p>
+      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function formatDate(value: any) {
+  const raw = typeof value?.toDate === "function" ? value.toDate() : value;
+  const date = raw ? new Date(raw) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Recently";
+  return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }

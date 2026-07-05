@@ -33,7 +33,7 @@ import ContributorUploads from "@/pages/ContributorUploads";
 
 function Router() {
   const [location] = useLocation();
-  const isContributorPortal = location === "/" || location === "/contribute" || location.startsWith("/contributors");
+  const isContributorPortal = location === "/" || location === "/contribute" || location === "/profile" || location.startsWith("/contributors");
 
   if (location.startsWith("/auth?")) {
     return (
@@ -52,6 +52,7 @@ function Router() {
         <Route path="/contributors/dashboard" component={ContributorDashboard} />
         <Route path="/contributors/upload" component={ContributorUpload} />
         <Route path="/contributors/uploads" component={ContributorUploads} />
+        <Route path="/profile" component={Profile} />
         <Route component={NotFound} />
       </Switch>
     );
