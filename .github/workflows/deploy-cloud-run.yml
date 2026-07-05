@@ -19,6 +19,10 @@ on:
         description: Firebase Storage bucket name from Firebase Console > Storage
         default: pakstudy-hub-d418b.firebasestorage.app
         required: true
+      min_instances:
+        description: Minimum Cloud Run instances to keep warm. Use 1 for faster first upload, 0 for lowest cost.
+        default: "1"
+        required: true
 
 jobs:
   deploy-cloud-run:
@@ -119,6 +123,7 @@ jobs:
             --region "${{ inputs.region }}" \
             --allow-unauthenticated \
             --service-account "${{ inputs.runtime_service_account }}" \
+            --min-instances "${{ inputs.min_instances }}" \
             --quiet \
             --set-env-vars NODE_ENV=production,FIREBASE_PROJECT_ID=pakstudy-hub-d418b,GOOGLE_CLOUD_PROJECT=pakstudy-hub-d418b,FIREBASE_STORAGE_BUCKET=${{ inputs.storage_bucket }},PAYMENTS_CURRENCY=pkr,OPENAI_MODEL=gpt-4.1-mini,BIGQUERY_ENABLED=false
 

@@ -326,9 +326,12 @@ Use GitHub Actions:
 service = pakstudy-hub-api
 region = us-central1
 storage_bucket = exact bucket from Firebase Console > Build > Storage
+min_instances = 1
 ```
 
 The backend already listens on `process.env.PORT`, which Cloud Run provides.
+
+Set `min_instances` to `1` for faster first requests and uploads. Set it to `0` only when minimizing Cloud Run cost matters more than avoiding cold starts.
 
 The workflow deploys from source:
 

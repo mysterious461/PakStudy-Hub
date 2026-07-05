@@ -25,6 +25,10 @@ import { createNotePurchaseIntent, createWalletTopUpIntent, requireStripe, strip
 import { storage } from "./storage";
 import { saveUploadedFile, upload } from "./uploads";
 
+function trackEvent(eventName: string, userId: string | undefined, properties: Record<string, unknown> = {}) {
+  void logEvent(eventName, userId, properties);
+}
+
 function parseBody<T extends ZodSchema>(schema: T, req: Request): z.infer<T> {
   return schema.parse(req.body);
 }
@@ -409,7 +413,7 @@ export async function registerRoutes(
         uploadedBy: user.uid,
         uploadedByName: user.name,
       });
-      await logEvent("admin_resource_uploaded", user.uid, {
+      trackEvent("admin_resource_uploaded", user.uid, {
         resourceId: resource.id,
         resourceType: resource.resourceType,
         visibility: resource.visibility,
@@ -450,7 +454,7 @@ export async function registerRoutes(
         uploaderEmail: user.email,
         uploaderName: user.name,
       });
-      await logEvent("contributor_resource_submitted", user.uid, {
+      trackEvent("contributor_resource_submitted", user.uid, {
         resourceId: resource.id,
         resourceType: resource.resourceType,
         contentType: file.contentType,
