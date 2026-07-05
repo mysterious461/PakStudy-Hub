@@ -66,9 +66,8 @@ export default function Profile() {
       setLoadError("");
 
       try {
-        await apiRequest("POST", "/api/users/me").catch((error) => {
-          if (import.meta.env.DEV) console.warn("Profile backend sync failed:", error);
-        });
+        const profileResponse = await apiRequest("GET", "/api/user/profile");
+        const backendProfile = await profileResponse.json();
 
         const userRef = doc(db, "users", user.uid);
         let snapshot = await getDoc(userRef);
@@ -88,7 +87,7 @@ export default function Profile() {
         }
 
         const data = snapshot.data() || {};
-        const nextProfile = normalizeProfile(user, data);
+        const nextProfile = normalizeProfile(user, { ...data, ...backendProfile });
         const contributorStats = await loadContributorStats(nextProfile.reputation);
 
         if (!cancelled) {
@@ -188,9 +187,10 @@ export default function Profile() {
           ) : loadError ? (
             <StateCard
               title="Could not load profile"
-              text="We could not load your contributor profile. Please check your connection and try again."
+              text={`We could not load your contributor profile. ${loadError}`}
               actionLabel="Retry"
               onAction={() => setReloadKey((key) => key + 1)}
+              onSignOut={handleLogout}
             />
           ) : (
             <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
@@ -333,7 +333,7 @@ function isAdminRole(role: string | undefined) {
   return role === "Admin" || role === "Moderator";
 }
 
-function StateCard({ title, text, actionLabel, onAction }: { title: string; text: string; actionLabel: string; onAction: () => void }) {
+function StateCard({ title, text, actionLabel, onAction, onSignOut }: { title: string; text: string; actionLabel: string; onAction: () => void; onSignOut: () => void }) {
   return (
     <Card className="mx-auto max-w-xl border-border/60 shadow-sm">
       <CardContent className="p-8 text-center">
@@ -342,7 +342,10 @@ function StateCard({ title, text, actionLabel, onAction }: { title: string; text
         </div>
         <h2 className="text-xl font-black">{title}</h2>
         <p className="mt-2 text-sm leading-7 text-muted-foreground">{text}</p>
-        <Button className="mt-6 rounded-2xl font-bold" onClick={onAction}>{actionLabel}</Button>
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button className="rounded-2xl font-bold" onClick={onAction}>{actionLabel}</Button>
+          <Button variant="outline" className="rounded-2xl font-bold" onClick={onSignOut}>Sign Out</Button>
+        </div>
       </CardContent>
     </Card>
   );

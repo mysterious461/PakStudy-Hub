@@ -217,12 +217,17 @@ function conversationIdFor(a: string, b: string) {
   return [a, b].sort().join("__");
 }
 
+function sortByCreatedAtDesc<T extends { createdAt: Date }>(items: T[]) {
+  return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
 export class FirestoreStorage implements IStorage {
   async upsertUser(input: UpsertUser): Promise<User> {
     const ref = db.collection("users").doc(input.id);
     const snap = await ref.get();
     const existing = snap.exists ? normalizeUser(snap.id, snap.data()!) : undefined;
     const data = clean({
+      uid: input.id,
       email: input.email,
       name: input.name,
       role: input.role ?? existing?.role ?? "Student",
@@ -576,8 +581,8 @@ export class FirestoreStorage implements IStorage {
   async listResources(filters: { visibility?: string } = {}): Promise<AcademicResource[]> {
     let query: FirebaseFirestore.Query = db.collection("resources");
     if (filters.visibility) query = query.where("visibility", "==", filters.visibility);
-    const snap = await query.orderBy("createdAt", "desc").limit(100).get();
-    return snap.docs.map((doc) => normalizeResource(doc.id, doc.data()));
+    const snap = await query.limit(100).get();
+    return sortByCreatedAtDesc(snap.docs.map((doc) => normalizeResource(doc.id, doc.data())));
   }
 
   async createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string }): Promise<AcademicResource> {
@@ -617,8 +622,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async listResourcesByUploader(uploaderId: string): Promise<AcademicResource[]> {
-    const snap = await db.collection("resources").where("uploaderId", "==", uploaderId).orderBy("createdAt", "desc").limit(100).get();
-    return snap.docs.map((doc) => normalizeResource(doc.id, doc.data()));
+    const snap = await db.collection("resources").where("uploaderId", "==", uploaderId).limit(100).get();
+    return sortByCreatedAtDesc(snap.docs.map((doc) => normalizeResource(doc.id, doc.data())));
   }
 
   async getContributorStats(uploaderId: string): Promise<{ totalUploads: number; approvedUploads: number; pendingUploads: number; rejectedUploads: number; reputationPoints: number; badgeStatus: string }> {
@@ -639,8 +644,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async listPendingResources(): Promise<AcademicResource[]> {
-    const snap = await db.collection("resources").where("status", "==", "pending").orderBy("createdAt", "desc").limit(100).get();
-    return snap.docs.map((doc) => normalizeResource(doc.id, doc.data()));
+    const snap = await db.collection("resources").where("status", "==", "pending").limit(100).get();
+    return sortByCreatedAtDesc(snap.docs.map((doc) => normalizeResource(doc.id, doc.data())));
   }
 
   async reviewResource(id: string, input: { action: "approved" | "rejected" | "changes_requested"; rejectionReason?: string; reviewedBy: string }): Promise<AcademicResource> {

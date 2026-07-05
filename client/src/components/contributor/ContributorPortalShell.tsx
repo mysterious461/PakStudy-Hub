@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { BookOpen, GraduationCap, HelpCircle, Home, LayoutDashboard, LogIn, ShieldCheck, UploadCloud, User, Files } from "lucide-react";
+import { BookOpen, GraduationCap, HelpCircle, Home, LayoutDashboard, LogIn, LogOut, ShieldCheck, UploadCloud, User, Files } from "lucide-react";
 import { useLocation } from "wouter";
-import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { auth, db } from "@/lib/firebase";
+import { apiRequest } from "@/lib/queryClient";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
 
 type ContributorPortalShellProps = {
@@ -26,6 +27,15 @@ export function ContributorPortalShell({ children }: ContributorPortalShellProps
       unsubscribeProfile = undefined;
 
       if (currentUser) {
+        void apiRequest("GET", "/api/user/profile")
+          .then((response) => response.json())
+          .then((profile) => {
+            setRole(profile?.role === "Admin" || profile?.role === "Moderator" ? profile.role : "Student");
+          })
+          .catch((error) => {
+            if (import.meta.env.DEV) console.warn("Portal profile role fetch failed:", error);
+          });
+
         unsubscribeProfile = onSnapshot(doc(db, "users", currentUser.uid), (snapshot) => {
           const nextRole = snapshot.data()?.role;
           setRole(nextRole === "Admin" || nextRole === "Moderator" ? nextRole : "Student");
@@ -72,6 +82,11 @@ export function ContributorPortalShell({ children }: ContributorPortalShellProps
             <span className="hidden sm:inline">{user ? "Profile" : "Sign In / Sign Up"}</span>
             <span className="sm:hidden">{user ? "Profile" : "Sign In"}</span>
           </Button>
+          {user && (
+            <Button variant="ghost" size="icon" className="rounded-2xl" onClick={() => void signOut(auth)}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:hidden">

@@ -24,6 +24,7 @@ import { logEvent } from "./analytics";
 import { createNotePurchaseIntent, createWalletTopUpIntent, requireStripe, stripe } from "./payments";
 import { storage } from "./storage";
 import { saveUploadedFile, upload } from "./uploads";
+import { getFirebaseAdminDiagnostics } from "./firebaseAdmin";
 
 function trackEvent(eventName: string, userId: string | undefined, properties: Record<string, unknown> = {}) {
   void logEvent(eventName, userId, properties);
@@ -46,13 +47,27 @@ function sendError(res: Response, error: unknown) {
   return res.status(status || 500).json({ message });
 }
 
+function logApiError(endpoint: string, error: unknown, req?: Request) {
+  const status = typeof error === "object" && error && "status" in error ? Number(error.status) : 500;
+  const message = error instanceof Error ? error.message : "Unknown error";
+  console.error(JSON.stringify({
+    level: "error",
+    endpoint,
+    status: status || 500,
+    message,
+    userId: req?.user?.uid ?? null,
+    method: req?.method ?? null,
+  }));
+}
+
 const asyncRoute =
-  (handler: (req: Request, res: Response) => Promise<unknown>) =>
+  (handler: (req: Request, res: Response) => Promise<unknown>, endpointName?: string) =>
   async (req: Request, res: Response) => {
     try {
       const result = await handler(req, res);
       if (!res.headersSent) res.json(result);
     } catch (error) {
+      if (endpointName) logApiError(endpointName, error, req);
       sendError(res, error);
     }
   };
@@ -105,7 +120,17 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", service: "PakStudy Hub API" });
+    res.json({
+      status: "ok",
+      service: "PakStudy Hub API",
+      firebaseAdmin: getFirebaseAdminDiagnostics(),
+      env: {
+        firebaseProjectIdPresent: Boolean(process.env.FIREBASE_PROJECT_ID),
+        googleCloudProjectPresent: Boolean(process.env.GOOGLE_CLOUD_PROJECT),
+        firebaseStorageBucketPresent: Boolean(process.env.FIREBASE_STORAGE_BUCKET),
+        firebaseServiceAccountJsonPresent: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON),
+      },
+    });
   });
 
   app.post(
@@ -166,7 +191,20 @@ export async function registerRoutes(
       const user = currentUser(req);
       const profile = await storage.getUser(user.uid);
       return profile;
-    }),
+    }, "/api/user/profile"),
+  );
+
+  app.get(
+    "/api/user/profile",
+    requireAuth,
+    asyncRoute(async (req) => {
+      const user = currentUser(req);
+      return storage.upsertUser({
+        id: user.uid,
+        email: user.email || `${user.uid}@firebase.local`,
+        name: user.name || user.email?.split("@")[0] || "Student",
+      });
+    }, "/api/user/profile"),
   );
 
   app.get(
@@ -427,13 +465,13 @@ export async function registerRoutes(
   app.get(
     "/api/contributor/resources",
     requireAuth,
-    asyncRoute(async (req) => storage.listResourcesByUploader(currentUser(req).uid)),
+    asyncRoute(async (req) => storage.listResourcesByUploader(currentUser(req).uid), "/api/contributor/resources"),
   );
 
   app.get(
     "/api/contributor/stats",
     requireAuth,
-    asyncRoute(async (req) => storage.getContributorStats(currentUser(req).uid)),
+    asyncRoute(async (req) => storage.getContributorStats(currentUser(req).uid), "/api/contributor/stats"),
   );
 
   app.post(
@@ -461,7 +499,7 @@ export async function registerRoutes(
         size: file.size,
       });
       return resource;
-    }),
+    }, "/api/contributor/resources"),
   );
 
   app.get(
@@ -488,7 +526,7 @@ export async function registerRoutes(
         action: input.action,
       });
       return resource;
-    }),
+    }, "/api/admin/resources/review"),
   );
 
   app.get(
