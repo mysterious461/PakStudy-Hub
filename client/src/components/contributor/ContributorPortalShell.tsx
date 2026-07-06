@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BookOpen, Files, Home, LayoutDashboard, LogIn, LogOut, Menu, ShieldCheck, User, X } from "lucide-react";
+import { BookOpen, Files, Home, LayoutDashboard, LogIn, LogOut, Menu, Search, ShieldCheck, User, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,7 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
 
   const navItems = [
     { icon: Home, label: "Home", path: "/contribute" },
+    { icon: Search, label: "Resources", path: "/resources" },
     { icon: BookOpen, label: "Contribute", path: hasKnownSession ? "/contributors/upload" : "/auth?returnTo=/contributors/upload" },
     { icon: Files, label: "My Uploads", path: hasKnownSession ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads" },
     { icon: LayoutDashboard, label: "Dashboard", path: hasKnownSession ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard" },
@@ -202,7 +203,7 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
           </div>
           <FooterGroup title="Company" links={[["About", "/about"], ["Roadmap", "/about"], ["Future Universities", "/about"]]} onNavigate={goTo} />
           <FooterGroup title="Community" links={[["Contribute", "/contributors/upload"], ["Dashboard", "/contributors/dashboard"], ["My Uploads", "/contributors/uploads"]]} onNavigate={goTo} />
-          <FooterGroup title="Resources" links={[["Guidelines", "/guidelines"], ["Help Center", "/help"], ["Upload Rules", "/guidelines"]]} onNavigate={goTo} />
+          <FooterGroup title="Resources" links={[["Browse Library", "/resources"], ["Guidelines", "/guidelines"], ["Help Center", "/help"], ["Upload Rules", "/guidelines"]]} onNavigate={goTo} />
           <FooterGroup title="Support" links={[["Contact", "/contact"], ["Common Issues", "/help"], ["Support Request", "/help"]]} onNavigate={goTo} />
           <FooterGroup title="Legal" links={[["Privacy Policy", "/privacy"], ["Terms of Service", "/terms"], ["Copyright Policy", "/copyright"], ["Academic Integrity", "/academic-integrity"]]} onNavigate={goTo} />
           <div>

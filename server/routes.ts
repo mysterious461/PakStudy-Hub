@@ -24,7 +24,7 @@ import { logEvent } from "./analytics";
 import { createNotePurchaseIntent, createWalletTopUpIntent, requireStripe, stripe } from "./payments";
 import { storage } from "./storage";
 import { extensionFor, saveUploadedFile, upload } from "./uploads";
-import { FieldValue, db, getFirebaseAdminDiagnostics, toDate } from "./firebaseAdmin";
+import { FieldValue, adminAuth, db, getFirebaseAdminDiagnostics, toDate } from "./firebaseAdmin";
 
 function trackEvent(eventName: string, userId: string | undefined, properties: Record<string, unknown> = {}) {
   void logEvent(eventName, userId, properties);
@@ -75,6 +75,23 @@ const asyncRoute =
 function currentUser(req: Request) {
   if (!req.user) throw Object.assign(new Error("Authentication required"), { status: 401 });
   return req.user;
+}
+
+async function optionalCurrentUser(req: Request) {
+  const header = req.header("authorization");
+  if (!header?.startsWith("Bearer ")) return undefined;
+  try {
+    const decoded = await adminAuth.verifyIdToken(header.slice("Bearer ".length).trim());
+    const existing = await storage.getUser(decoded.uid);
+    return {
+      uid: decoded.uid,
+      email: decoded.email,
+      name: existing?.name || decoded.name || decoded.email?.split("@")[0] || "Student",
+      role: existing?.role || "Student",
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function parseResourceUploadBody(body: Request["body"]) {
@@ -136,6 +153,133 @@ function validateContributorFile(file: Express.Multer.File) {
   }
 
   return fileKind;
+}
+
+function isAdminRoleValue(role?: string) {
+  return role === "Admin" || role === "Moderator";
+}
+
+function normalizePublicResource(id: string, data: Record<string, any>) {
+  const file = data.file ?? {
+    path: data.filePath ?? "",
+    url: data.fileUrl ?? "",
+    contentType: data.fileType ?? "",
+    size: data.fileSize ?? 0,
+    originalName: data.fileName ?? "",
+  };
+  return {
+    id,
+    university: data.university ?? "",
+    faculty: data.faculty ?? data.department ?? "",
+    department: data.department ?? data.faculty ?? "",
+    degree: data.degree ?? "",
+    semester: data.semester ?? "",
+    course: data.course ?? data.courseCode ?? "",
+    courseCode: data.courseCode ?? data.course ?? "",
+    courseTitle: data.courseTitle ?? data.subject ?? data.course ?? "",
+    subject: data.subject ?? data.courseTitle ?? data.course ?? "",
+    resourceCategory: data.resourceCategory ?? data.resourceType ?? "notes",
+    resourceType: data.resourceType ?? data.resourceCategory ?? "notes",
+    title: data.title ?? "Untitled resource",
+    year: data.year ?? new Date().getFullYear(),
+    language: data.language ?? "English",
+    description: data.description ?? "",
+    tags: data.tags ?? [],
+    status: data.status ?? data.reviewStatus ?? "pending",
+    visibility: data.visibility ?? "private",
+    uploadedBy: data.uploadedBy ?? data.uploaderId ?? "",
+    uploadedByName: data.uploadedByName ?? data.uploaderName ?? data.uploaderNameSource ?? "Contributor",
+    uploaderId: data.uploaderId ?? data.uploadedBy ?? "",
+    uploaderEmail: data.uploaderEmail ?? "",
+    file,
+    fileUrl: data.fileUrl ?? file.url,
+    fileName: data.fileName ?? file.originalName,
+    fileType: data.fileType ?? file.contentType,
+    fileSize: data.fileSize ?? file.size,
+    fileCategory: data.fileCategory ?? "",
+    fileExtension: data.fileExtension ?? "",
+    views: data.views ?? 0,
+    downloads: data.downloads ?? 0,
+    searchableKeywords: data.searchableKeywords ?? buildResourceKeywords({ id, ...data }),
+    createdAt: toDate(data.createdAt).toISOString(),
+    updatedAt: data.updatedAt ? toDate(data.updatedAt).toISOString() : undefined,
+  };
+}
+
+function buildResourceKeywords(resource: Record<string, any>) {
+  const values = [
+    resource.title,
+    resource.courseCode,
+    resource.courseTitle,
+    resource.course,
+    resource.subject,
+    resource.university,
+    resource.faculty,
+    resource.department,
+    resource.degree,
+    resource.semester,
+    resource.resourceCategory,
+    resource.resourceType,
+    resource.year,
+    resource.language,
+    resource.uploadedByName,
+    resource.uploaderName,
+    resource.uploaderNameSource,
+    ...(Array.isArray(resource.tags) ? resource.tags : []),
+  ];
+  return Array.from(new Set(values.flatMap((value) => String(value || "").toLowerCase().split(/[^a-z0-9]+/)).filter(Boolean)));
+}
+
+function matchesResourceFilters(resource: any, query: Request["query"], userRole?: string) {
+  const isAdmin = isAdminRoleValue(userRole);
+  const status = typeof query.status === "string" ? query.status : "";
+  if (isAdmin && status && status !== "all" && resource.status !== status) return false;
+  if (!isAdmin && resource.status !== "approved") return false;
+
+  const filters = [
+    ["university", resource.university],
+    ["faculty", resource.faculty || resource.department],
+    ["degree", resource.degree],
+    ["semester", resource.semester],
+    ["courseCode", resource.courseCode],
+    ["courseTitle", resource.courseTitle],
+    ["resourceType", resource.resourceCategory || resource.resourceType],
+    ["year", String(resource.year || "")],
+    ["language", resource.language],
+  ] as const;
+  for (const [key, value] of filters) {
+    const expected = typeof query[key] === "string" ? String(query[key]).trim().toLowerCase() : "";
+    if (expected && !String(value || "").toLowerCase().includes(expected)) return false;
+  }
+
+  const search = typeof query.search === "string" ? query.search.trim().toLowerCase() : "";
+  if (!search) return true;
+  const haystack = [
+    resource.title,
+    resource.courseCode,
+    resource.courseTitle,
+    resource.course,
+    resource.subject,
+    resource.university,
+    resource.faculty,
+    resource.department,
+    resource.degree,
+    resource.semester,
+    resource.resourceCategory,
+    resource.resourceType,
+    resource.year,
+    resource.language,
+    resource.uploadedByName,
+    ...(resource.tags || []),
+    ...(resource.searchableKeywords || []),
+  ].join(" ").toLowerCase();
+  return search.split(/\s+/).every((term) => haystack.includes(term));
+}
+
+function canViewResource(resource: any, user?: { uid: string; role?: string }) {
+  if (resource.status === "approved") return true;
+  if (!user) return false;
+  return isAdminRoleValue(user.role) || resource.uploaderId === user.uid || resource.uploadedBy === user.uid;
 }
 
 const userProfilePatchSchema = z.object({
@@ -273,6 +417,84 @@ export async function registerRoutes(
         createdAt: toDate(updated.data()?.createdAt).toISOString(),
       };
     }, "/api/admin/contact-messages"),
+  );
+
+  app.get(
+    "/api/resources",
+    asyncRoute(async (req) => {
+      const user = await optionalCurrentUser(req);
+      const isAdmin = isAdminRoleValue(user?.role);
+      let query: FirebaseFirestore.Query = db.collection("resources");
+      if (!isAdmin) query = query.where("status", "==", "approved");
+      const snap = await query.limit(250).get();
+      const resources = snap.docs
+        .map((doc) => normalizePublicResource(doc.id, doc.data()))
+        .filter((resource) => matchesResourceFilters(resource, req.query, user?.role))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return resources;
+    }, "/api/resources"),
+  );
+
+  app.get(
+    "/api/resources/:id",
+    asyncRoute(async (req, res) => {
+      const user = await optionalCurrentUser(req);
+      const snap = await db.collection("resources").doc(req.params.id).get();
+      if (!snap.exists) return res.status(404).json({ message: "Resource not found" });
+      const resource = normalizePublicResource(snap.id, snap.data() || {});
+      if (!canViewResource(resource, user)) {
+        return res.status(403).json({ message: "This resource is not publicly available yet." });
+      }
+      return resource;
+    }, "/api/resources/:id"),
+  );
+
+  app.post(
+    "/api/resources/:id/view",
+    asyncRoute(async (req, res) => {
+      const user = await optionalCurrentUser(req);
+      const ref = db.collection("resources").doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ message: "Resource not found" });
+      const resource = normalizePublicResource(snap.id, snap.data() || {});
+      if (!canViewResource(resource, user)) return res.status(403).json({ message: "Cannot view this resource" });
+      await ref.update({ views: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() });
+      return { ok: true };
+    }, "/api/resources/:id/view"),
+  );
+
+  app.post(
+    "/api/resources/:id/download",
+    asyncRoute(async (req, res) => {
+      const user = await optionalCurrentUser(req);
+      const ref = db.collection("resources").doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ message: "Resource not found" });
+      const resource = normalizePublicResource(snap.id, snap.data() || {});
+      if (!canViewResource(resource, user)) return res.status(403).json({ message: "Cannot download this resource" });
+      await ref.update({ downloads: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() });
+      return { ok: true, fileUrl: resource.fileUrl || resource.file?.url };
+    }, "/api/resources/:id/download"),
+  );
+
+  app.post(
+    "/api/resources/:id/report",
+    asyncRoute(async (req) => {
+      const user = await optionalCurrentUser(req);
+      const reason = typeof req.body?.reason === "string" && req.body.reason.trim()
+        ? req.body.reason.trim().slice(0, 1000)
+        : "Resource reported from public detail page";
+      await db.collection("reports").doc().set({
+        type: "resource",
+        contentType: "resource",
+        contentId: req.params.id,
+        reason,
+        reporterId: user?.uid || "anonymous",
+        status: "pending",
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return { ok: true };
+    }, "/api/resources/:id/report"),
   );
 
   app.post(

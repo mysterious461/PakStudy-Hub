@@ -32,6 +32,8 @@ import ContributorLanding from "@/pages/ContributorLanding";
 import ContributorDashboard from "@/pages/ContributorDashboard";
 import ContributorUpload from "@/pages/ContributorUpload";
 import ContributorUploads from "@/pages/ContributorUploads";
+import ResourceSearch from "@/pages/ResourceSearch";
+import ResourceDetail from "@/pages/ResourceDetail";
 import { AboutPakStudy, AcademicIntegrityPolicy, ContactPage, ContributorGuidelines, CopyrightPolicy, HelpCenter, PrivacyPolicy, TermsOfService } from "@/pages/PortalInfoPages";
 
 function Router() {
@@ -51,6 +53,7 @@ function Router() {
     location.startsWith("/terms") ||
     location.startsWith("/copyright") ||
     location.startsWith("/academic-integrity") ||
+    location.startsWith("/resources") ||
     location.startsWith("/contributors");
 
   if (location === "/auth" || location.startsWith("/auth?")) {
@@ -67,6 +70,8 @@ function Router() {
           <Route path="/contributors/dashboard" component={ContributorDashboard} />
           <Route path="/contributors/upload" component={ContributorUpload} />
           <Route path="/contributors/uploads" component={ContributorUploads} />
+          <Route path="/resources/:resourceId" component={ResourceDetail} />
+          <Route path="/resources" component={ResourceSearch} />
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/resources/review" component={AdminResourceReview} />

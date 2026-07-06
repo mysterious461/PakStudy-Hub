@@ -237,6 +237,30 @@ function sortByCreatedAtDesc<T extends { createdAt: Date }>(items: T[]) {
   return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
+function buildResourceKeywords(input: Record<string, unknown>) {
+  const values = [
+    input.title,
+    input.course,
+    input.courseCode,
+    input.courseTitle,
+    input.subject,
+    input.university,
+    input.faculty,
+    input.department,
+    input.degree,
+    input.semester,
+    input.resourceCategory,
+    input.resourceType,
+    input.year,
+    input.language,
+    input.uploadedByName,
+    input.uploaderName,
+    input.uploaderNameSource,
+    ...(Array.isArray(input.tags) ? input.tags : []),
+  ];
+  return Array.from(new Set(values.flatMap((value) => String(value || "").toLowerCase().split(/[^a-z0-9]+/)).filter(Boolean)));
+}
+
 export class FirestoreStorage implements IStorage {
   async upsertUser(input: UpsertUser): Promise<User> {
     const ref = db.collection("users").doc(input.id);
@@ -568,7 +592,7 @@ export class FirestoreStorage implements IStorage {
 
   async createResource(input: AcademicResourceMetadata & { file: StoredFile; uploadedBy: string; uploadedByName: string }): Promise<AcademicResource> {
     const ref = db.collection("resources").doc();
-    await ref.set({
+    const data = {
       university: input.university,
       department: input.department,
       degree: input.degree,
@@ -595,7 +619,8 @@ export class FirestoreStorage implements IStorage {
       hasPermission: input.permissionStatus === "owned" || input.permissionStatus === "permission_granted",
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+    await ref.set({ ...data, searchableKeywords: buildResourceKeywords(data) });
     const snap = await ref.get();
     return normalizeResource(snap.id, snap.data()!);
   }
@@ -609,7 +634,7 @@ export class FirestoreStorage implements IStorage {
 
   async createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string; fileCategory?: string; fileExtension?: string }): Promise<AcademicResource> {
     const ref = db.collection("resources").doc();
-    await ref.set({
+    const data = {
       university: input.university,
       faculty: input.faculty,
       department: input.department,
@@ -660,7 +685,8 @@ export class FirestoreStorage implements IStorage {
       uploaderEmail: input.uploaderEmail ?? null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+    await ref.set({ ...data, searchableKeywords: buildResourceKeywords(data) });
     const snap = await ref.get();
     return normalizeResource(snap.id, snap.data()!);
   }
