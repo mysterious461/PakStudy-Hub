@@ -106,7 +106,7 @@ export default function AdminResourceReview() {
                     <Meta label="Faculty" value={resource.faculty || resource.department} />
                     <Meta label="Degree Program" value={resource.degree} />
                     <Meta label="Semester" value={resource.semester} />
-                    <Meta label="Course" value={resource.course} />
+                    <Meta label="Course" value={displayCourse(resource)} />
                     <Meta label="Category" value={labelType(resource.resourceCategory || resource.resourceType)} />
                     <Meta label="File" value={`${resource.fileName || "Resource"} / ${formatSize(resource.fileSize || 0)}`} />
                   </div>
@@ -193,6 +193,11 @@ function labelStatus(status: string) {
 
 function labelType(type: string) {
   return type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function displayCourse(resource: any) {
+  const title = resource.courseTitle || resource.course || resource.subject || "Course";
+  return resource.courseCode ? `${resource.courseCode} / ${title}` : title;
 }
 
 function formatSize(size: number) {

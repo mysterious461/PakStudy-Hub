@@ -202,7 +202,7 @@ function UploadPreviewCard({ resource, onView }: { resource: any; onView: () => 
             <Badge variant="outline" className={statusStyles[resource.status] || statusStyles.pending}>{labelStatus(resource.status)}</Badge>
           </div>
           <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-            <span>{resource.course}</span>
+            <span>{displayCourse(resource)}</span>
             <span>{resource.university}</span>
             <span>{resource.faculty || resource.department}</span>
             <span>{resource.semester} / {labelCategory(resource)}</span>
@@ -276,6 +276,11 @@ function labelStatus(status: string) {
 
 function labelCategory(resource: any) {
   return (resource.resourceCategory || resource.resourceType || "notes").replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase());
+}
+
+function displayCourse(resource: any) {
+  const title = resource.courseTitle || resource.course || resource.subject || "Course";
+  return resource.courseCode ? `${resource.courseCode} / ${title}` : title;
 }
 
 function formatDate(value: unknown) {

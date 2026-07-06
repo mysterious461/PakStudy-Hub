@@ -191,8 +191,10 @@ export const contributorResourceSchema = z.object({
   department: z.string().min(2).max(160),
   degree: z.string().min(2).max(160),
   semester: z.string().min(1).max(60),
-  course: z.string().min(2).max(160),
-  subject: z.string().min(2).max(160),
+  courseCode: z.string().min(2).max(80),
+  courseTitle: z.string().min(2).max(180),
+  course: z.string().max(160).optional().default(""),
+  subject: z.string().max(160).optional().default(""),
   resourceCategory: z.enum(["notes", "slides", "past_papers", "assignments", "lab_manuals", "projects", "formula_sheets", "tutorials", "quizzes"]),
   resourceType: z.enum(["notes", "past_papers", "slides", "lab_manual", "assignment_solution", "formula_sheet", "book", "lecture_recording", "voice_note", "dataset", "archive", "other"]).optional().default("notes"),
   language: z.string().min(2).max(80),
@@ -262,6 +264,8 @@ export type AcademicResource = AcademicResourceMetadata & {
   fileSize?: number;
   hasPermission?: boolean;
   faculty?: string;
+  courseCode?: string;
+  courseTitle?: string;
   resourceCategory?: string;
   subject?: string;
   language?: string;

@@ -187,7 +187,7 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
       <main>{children}</main>
 
       <footer className="border-t border-border/60 bg-background">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_repeat(5,1fr)]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_repeat(6,1fr)]">
           <div>
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-2xl border border-border/50 bg-white p-1.5 shadow-sm">
@@ -204,7 +204,17 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
           <FooterGroup title="Community" links={[["Contribute", "/contributors/upload"], ["Dashboard", "/contributors/dashboard"], ["My Uploads", "/contributors/uploads"]]} onNavigate={goTo} />
           <FooterGroup title="Resources" links={[["Guidelines", "/guidelines"], ["Help Center", "/help"], ["Upload Rules", "/guidelines"]]} onNavigate={goTo} />
           <FooterGroup title="Support" links={[["Contact", "/contact"], ["Common Issues", "/help"], ["Support Request", "/help"]]} onNavigate={goTo} />
-          <FooterGroup title="Legal & Social" links={[["Privacy Policy", "/privacy"], ["GitHub", "/contact"], ["LinkedIn", "/contact"], ["Facebook", "/contact"], ["Instagram", "/contact"], ["YouTube", "/contact"]]} onNavigate={goTo} />
+          <FooterGroup title="Legal" links={[["Privacy Policy", "/privacy"], ["Terms of Service", "/terms"], ["Copyright Policy", "/copyright"], ["Academic Integrity", "/academic-integrity"]]} onNavigate={goTo} />
+          <div>
+            <h3 className="mb-3 text-sm font-black">Social Media</h3>
+            <div className="space-y-2">
+              {["GitHub", "LinkedIn", "Facebook", "Instagram", "YouTube"].map((label) => (
+                <span key={label} className="block cursor-not-allowed text-sm font-semibold text-muted-foreground/70" aria-label={`${label} profile coming soon`}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </footer>
     </div>

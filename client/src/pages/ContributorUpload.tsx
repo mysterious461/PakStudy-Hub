@@ -20,8 +20,9 @@ const initialForm = {
   department: "",
   degree: "",
   semester: "",
+  courseCode: "",
+  courseTitle: "",
   course: "",
-  subject: "",
   resourceCategory: "notes",
   resourceType: "notes",
   language: "English",
@@ -44,8 +45,8 @@ const requiredFields: Array<{ key: keyof UploadForm; label: string; minLength?: 
   { key: "department", label: "Faculty", minLength: 2 },
   { key: "degree", label: "Degree Program", minLength: 2 },
   { key: "semester", label: "Semester" },
-  { key: "course", label: "Course", minLength: 2 },
-  { key: "subject", label: "Subject", minLength: 2 },
+  { key: "courseCode", label: "Course Code", minLength: 2 },
+  { key: "courseTitle", label: "Course Title", minLength: 2 },
   { key: "language", label: "Language", minLength: 2 },
   { key: "title", label: "Title", minLength: 3 },
   { key: "description", label: "Description" },
@@ -134,6 +135,7 @@ export default function ContributorUpload() {
       ...current,
       [field]: value,
       ...(field === "faculty" ? { department: String(value) } : {}),
+      ...(field === "courseCode" ? { course: String(value) } : {}),
       ...(field === "resourceCategory" ? { resourceType: mapCategoryToResourceType(String(value)) } : {}),
     }));
   };
@@ -239,8 +241,8 @@ export default function ContributorUpload() {
                   <Field label="Faculty"><Input placeholder="Faculty of Engineering" value={form.faculty} onChange={(event) => updateField("faculty", event.target.value)} required /></Field>
                   <Field label="Degree Program"><Input placeholder="BS Computer Science" value={form.degree} onChange={(event) => updateField("degree", event.target.value)} required /></Field>
                   <Field label="Semester"><Input placeholder="4th semester" value={form.semester} onChange={(event) => updateField("semester", event.target.value)} required /></Field>
-                  <Field label="Course"><Input placeholder="CS-201 Data Structures" value={form.course} onChange={(event) => updateField("course", event.target.value)} required /></Field>
-                  <Field label="Subject"><Input placeholder="Algorithms, Calculus, Circuits" value={form.subject} onChange={(event) => updateField("subject", event.target.value)} required /></Field>
+                  <Field label="Course Code" helper="CS201, MATH101, EE232"><Input placeholder="CS201" value={form.courseCode} onChange={(event) => updateField("courseCode", event.target.value)} required /></Field>
+                  <Field label="Course Title" helper="Data Structures, Calculus-I, Circuit Analysis"><Input placeholder="Data Structures and Algorithms" value={form.courseTitle} onChange={(event) => updateField("courseTitle", event.target.value)} required /></Field>
                   <Field label="Resource Category">
                     <Select value={form.resourceCategory} onValueChange={(value) => updateField("resourceCategory", value)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -268,9 +270,9 @@ export default function ContributorUpload() {
                     <Textarea placeholder="Briefly describe what this resource contains and who it can help." className="min-h-28 resize-none" value={form.description} onChange={(event) => updateField("description", event.target.value)} required />
                   </Field>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Tags"><Input value={form.tags} onChange={(event) => updateField("tags", event.target.value)} placeholder="calculus, midterm, solved" /></Field>
-                    <Field label="Teacher Name"><Input value={form.teacherName} onChange={(event) => updateField("teacherName", event.target.value)} placeholder="Optional" /></Field>
-                    <Field label="Year"><Input value={form.year} onChange={(event) => updateField("year", event.target.value)} placeholder="2026" /></Field>
+                    <Field label="Tags" helper="midterm, solved, handwritten, FAST, semester 3"><Input value={form.tags} onChange={(event) => updateField("tags", event.target.value)} placeholder="midterm, solved, handwritten" /></Field>
+                    <Field label="Teacher Name" helper="Optional"><Input value={form.teacherName} onChange={(event) => updateField("teacherName", event.target.value)} placeholder="Optional" /></Field>
+                    <Field label="Academic Year / Session"><Input value={form.year} onChange={(event) => updateField("year", event.target.value)} placeholder="2026" /></Field>
                     <Field label="Exam Session"><Input value={form.examSession} onChange={(event) => updateField("examSession", event.target.value)} placeholder="Spring, Fall, Midterm" /></Field>
                     <Field label="Edition"><Input value={form.edition} onChange={(event) => updateField("edition", event.target.value)} placeholder="Optional" /></Field>
                     <Field label="Publisher"><Input value={form.publisher} onChange={(event) => updateField("publisher", event.target.value)} placeholder="Optional" /></Field>
@@ -452,10 +454,11 @@ function PreviewPanel({ file, previewUrl }: { file?: File; previewUrl: string })
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, helper, children }: { label: string; helper?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</Label>
+      {helper ? <p className="text-xs text-muted-foreground">{helper}</p> : null}
       {children}
     </div>
   );

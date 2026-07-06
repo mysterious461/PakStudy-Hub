@@ -18,6 +18,7 @@ import Library from "@/pages/Library";
 import Admin from "@/pages/Admin";
 import AdminUpload from "@/pages/AdminUpload";
 import AdminResourceReview from "@/pages/AdminResourceReview";
+import AdminContactMessages from "@/pages/AdminContactMessages";
 import Achievements from "@/pages/Achievements";
 import Settings from "@/pages/Settings";
 import Flashcards from "@/pages/Flashcards";
@@ -31,7 +32,7 @@ import ContributorLanding from "@/pages/ContributorLanding";
 import ContributorDashboard from "@/pages/ContributorDashboard";
 import ContributorUpload from "@/pages/ContributorUpload";
 import ContributorUploads from "@/pages/ContributorUploads";
-import { AboutPakStudy, ContactPage, ContributorGuidelines, HelpCenter, PrivacyPolicy } from "@/pages/PortalInfoPages";
+import { AboutPakStudy, AcademicIntegrityPolicy, ContactPage, ContributorGuidelines, CopyrightPolicy, HelpCenter, PrivacyPolicy, TermsOfService } from "@/pages/PortalInfoPages";
 
 function Router() {
   const [location] = useLocation();
@@ -41,11 +42,15 @@ function Router() {
     location === "/profile" ||
     location === "/admin" ||
     location === "/admin/resources/review" ||
+    location === "/admin/contact-messages" ||
     location.startsWith("/about") ||
     location.startsWith("/guidelines") ||
     location.startsWith("/help") ||
     location.startsWith("/contact") ||
     location.startsWith("/privacy") ||
+    location.startsWith("/terms") ||
+    location.startsWith("/copyright") ||
+    location.startsWith("/academic-integrity") ||
     location.startsWith("/contributors");
 
   if (location === "/auth" || location.startsWith("/auth?")) {
@@ -65,11 +70,15 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/resources/review" component={AdminResourceReview} />
+          <Route path="/admin/contact-messages" component={AdminContactMessages} />
           <Route path="/about" component={AboutPakStudy} />
           <Route path="/guidelines" component={ContributorGuidelines} />
           <Route path="/help" component={HelpCenter} />
           <Route path="/contact" component={ContactPage} />
           <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/copyright" component={CopyrightPolicy} />
+          <Route path="/academic-integrity" component={AcademicIntegrityPolicy} />
           <Route component={NotFound} />
         </Switch>
       </ContributorPortalLayout>

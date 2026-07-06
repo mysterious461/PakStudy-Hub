@@ -97,6 +97,8 @@ function parseTags(value: unknown) {
 function parseContributorUploadBody(body: Request["body"]) {
   return contributorResourceSchema.parse({
     ...body,
+    course: body.course || body.courseCode,
+    subject: body.subject || body.courseTitle,
     tags: parseTags(body.tags),
     hasPermission: body.hasPermission === "true" || body.hasPermission === true,
   });
@@ -143,6 +145,17 @@ const userProfilePatchSchema = z.object({
   degree: z.string().trim().max(160).optional(),
   grade: z.string().trim().max(80).optional(),
   bio: z.string().trim().max(500).optional(),
+});
+
+const contactMessageSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email().max(160),
+  category: z.enum(["General inquiry", "Upload problem", "Copyright concern", "Report content", "Partnership", "Technical issue"]),
+  message: z.string().min(10).max(2000),
+});
+
+const contactStatusSchema = z.object({
+  status: z.enum(["new", "reviewed", "resolved"]),
 });
 
 type AuthenticatedUser = NonNullable<Request["user"]>;
@@ -215,6 +228,52 @@ export async function registerRoutes(
       },
     });
   });
+
+  app.post(
+    "/api/contact-messages",
+    asyncRoute(async (req) => {
+      const input = parseBody(contactMessageSchema, req);
+      const ref = db.collection("contactMessages").doc();
+      await ref.set({
+        ...input,
+        status: "new",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return { id: ref.id, status: "new" };
+    }, "/api/contact-messages"),
+  );
+
+  app.get(
+    "/api/admin/contact-messages",
+    requireAuth,
+    requireAdmin,
+    asyncRoute(async () => {
+      const snap = await db.collection("contactMessages").orderBy("createdAt", "desc").limit(100).get();
+      return snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: toDate(doc.data().createdAt).toISOString(),
+      }));
+    }, "/api/admin/contact-messages"),
+  );
+
+  app.patch(
+    "/api/admin/contact-messages/:id",
+    requireAuth,
+    requireAdmin,
+    asyncRoute(async (req) => {
+      const input = parseBody(contactStatusSchema, req);
+      const ref = db.collection("contactMessages").doc(req.params.id);
+      await ref.set({ status: input.status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      const updated = await ref.get();
+      return {
+        id: updated.id,
+        ...updated.data(),
+        createdAt: toDate(updated.data()?.createdAt).toISOString(),
+      };
+    }, "/api/admin/contact-messages"),
+  );
 
   app.post(
     "/api/payments/webhook",
@@ -593,7 +652,7 @@ export async function registerRoutes(
         input.faculty,
         input.degree,
         input.semester,
-        input.course,
+        `${input.courseCode} ${input.courseTitle}`,
         input.resourceCategory,
       ]);
       const resource = await storage.createContributorResource({

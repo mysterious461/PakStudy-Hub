@@ -49,7 +49,7 @@ export default function ContributorUploads() {
   const filteredUploads = useMemo(() => {
     const query = search.trim().toLowerCase();
     return uploads.filter((resource) => {
-      const matchesSearch = !query || `${resource.title} ${resource.course} ${resource.university} ${resource.faculty || resource.department} ${resource.degree} ${resource.resourceCategory || resource.resourceType} ${resource.tags?.join(" ")}`.toLowerCase().includes(query);
+      const matchesSearch = !query || `${resource.title} ${displayCourse(resource)} ${resource.courseCode || ""} ${resource.courseTitle || ""} ${resource.university} ${resource.faculty || resource.department} ${resource.degree} ${resource.resourceCategory || resource.resourceType} ${resource.tags?.join(" ")}`.toLowerCase().includes(query);
       const matchesStatus = status === "all" || resource.status === status;
       return matchesSearch && matchesStatus;
     });
@@ -85,7 +85,7 @@ export default function ContributorUploads() {
             <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_220px_auto]">
               <div className="relative">
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
-                <Input className="h-12 rounded-2xl pl-12" placeholder="Search title, course, university, tags..." value={search} onChange={(event) => setSearch(event.target.value)} />
+                <Input className="h-12 rounded-2xl pl-12" placeholder="Search title, course code, course title, university, tags..." value={search} onChange={(event) => setSearch(event.target.value)} />
               </div>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="h-12 rounded-2xl">
@@ -191,7 +191,7 @@ function ResourceRow({ resource }: { resource: any }) {
           <p className="truncate text-xs text-muted-foreground">{resource.fileName || resource.file?.originalName || "Resource file"}</p>
         </div>
       </div>
-      <DataCell label="Course" value={resource.course} />
+      <DataCell label="Course" value={displayCourse(resource)} />
       <DataCell label="Hierarchy" value={`${resource.university || "University"} / ${resource.faculty || resource.department || "Faculty"} / ${resource.degree || "Degree"}`} />
       <DataCell label="Semester" value={resource.semester} />
       <DataCell label="Category" value={labelType(resource.resourceCategory || resource.resourceType)} />
@@ -291,6 +291,11 @@ function labelStatus(status: string) {
 
 function labelType(type: string) {
   return type ? type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "Resource";
+}
+
+function displayCourse(resource: any) {
+  const title = resource.courseTitle || resource.course || resource.subject || "Course";
+  return resource.courseCode ? `${resource.courseCode} / ${title}` : title;
 }
 
 function formatDate(value: unknown) {
