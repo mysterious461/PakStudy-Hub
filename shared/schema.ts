@@ -191,10 +191,17 @@ export const contributorResourceSchema = z.object({
   degree: z.string().min(2).max(160),
   semester: z.string().min(1).max(60),
   course: z.string().min(2).max(160),
-  resourceType: z.enum(["notes", "past_papers", "slides", "lab_manual", "assignment_solution", "formula_sheet", "other"]),
+  subject: z.string().min(2).max(160),
+  resourceType: z.enum(["notes", "past_papers", "slides", "lab_manual", "assignment_solution", "formula_sheet", "book", "lecture_recording", "voice_note", "dataset", "archive", "other"]),
+  language: z.string().min(2).max(80),
   title: z.string().min(3).max(180),
   description: z.string().min(1).max(1200),
   tags: z.array(z.string().min(1).max(40)).max(20).default([]),
+  teacherName: z.string().max(120).optional().default(""),
+  year: z.coerce.number().int().min(1990).max(2100).optional().default(new Date().getFullYear()),
+  examSession: z.string().max(80).optional().default(""),
+  edition: z.string().max(80).optional().default(""),
+  publisher: z.string().max(160).optional().default(""),
   hasPermission: z.coerce.boolean().refine((value) => value, "Permission confirmation is required"),
 });
 
@@ -252,6 +259,18 @@ export type AcademicResource = AcademicResourceMetadata & {
   fileType?: string;
   fileSize?: number;
   hasPermission?: boolean;
+  subject?: string;
+  language?: string;
+  teacherName?: string;
+  examSession?: string;
+  edition?: string;
+  publisher?: string;
+  fileCategory?: string;
+  fileExtension?: string;
+  previewStatus?: "pending" | "ready" | "unavailable";
+  processingStatus?: "pending" | "queued" | "complete" | "failed";
+  downloads?: number;
+  views?: number;
   createdAt: Date;
   updatedAt?: Date;
 };

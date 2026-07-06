@@ -23,7 +23,7 @@ import { requireAdmin, requireAuth } from "./auth";
 import { logEvent } from "./analytics";
 import { createNotePurchaseIntent, createWalletTopUpIntent, requireStripe, stripe } from "./payments";
 import { storage } from "./storage";
-import { saveUploadedFile, upload } from "./uploads";
+import { extensionFor, saveUploadedFile, upload } from "./uploads";
 import { FieldValue, db, getFirebaseAdminDiagnostics, toDate } from "./firebaseAdmin";
 
 function trackEvent(eventName: string, userId: string | undefined, properties: Record<string, unknown> = {}) {
@@ -102,17 +102,38 @@ function parseContributorUploadBody(body: Request["body"]) {
   });
 }
 
+function detectFileKind(file: Express.Multer.File) {
+  const extension = extensionFor(file.originalname);
+  const office = {
+    doc: "word",
+    docx: "word",
+    ppt: "powerpoint",
+    pptx: "powerpoint",
+    xls: "excel",
+    xlsx: "excel",
+  } as Record<string, string>;
+
+  if (extension === "pdf" || file.mimetype === "application/pdf") return { extension, category: "pdf", maxSize: 25 * 1024 * 1024 };
+  if (office[extension]) return { extension, category: office[extension], maxSize: 50 * 1024 * 1024 };
+  if (["png", "jpg", "jpeg", "webp", "gif"].includes(extension) || file.mimetype.startsWith("image/")) return { extension, category: "image", maxSize: 10 * 1024 * 1024 };
+  if (["mp3"].includes(extension) || file.mimetype.startsWith("audio/")) return { extension, category: "audio", maxSize: 50 * 1024 * 1024 };
+  if (extension === "mp4" || file.mimetype.startsWith("video/")) return { extension, category: "video", maxSize: 100 * 1024 * 1024 };
+  if (["zip", "rar", "7z"].includes(extension)) return { extension, category: "archive", maxSize: 100 * 1024 * 1024 };
+  if (["txt", "csv"].includes(extension) || file.mimetype.startsWith("text/")) return { extension, category: "text", maxSize: 50 * 1024 * 1024 };
+  return { extension, category: "unsupported", maxSize: 0 };
+}
+
 function validateContributorFile(file: Express.Multer.File) {
-  const isPdf = file.mimetype === "application/pdf";
-  const isImage = ["image/png", "image/jpeg"].includes(file.mimetype);
-  if (!isPdf && !isImage) {
-    throw Object.assign(new Error("Only PDF, PNG, and JPG files are supported"), { status: 400 });
+  const fileKind = detectFileKind(file);
+  if (fileKind.category === "unsupported") {
+    throw Object.assign(new Error("Unsupported file type"), { status: 400 });
   }
 
-  const maxSize = isPdf ? 10 * 1024 * 1024 : 3 * 1024 * 1024;
-  if (file.size > maxSize) {
-    throw Object.assign(new Error(isPdf ? "PDF files must be 10 MB or smaller" : "Image files must be 3 MB or smaller"), { status: 400 });
+  if (file.size > fileKind.maxSize) {
+    throw Object.assign(new Error(`${fileKind.category.toUpperCase()} files must be ${Math.round(fileKind.maxSize / (1024 * 1024))} MB or smaller`), { status: 400 });
   }
+
+  return fileKind;
 }
 
 const userProfilePatchSchema = z.object({
@@ -564,16 +585,23 @@ export async function registerRoutes(
     asyncRoute(async (req) => {
       const user = currentUser(req);
       if (!req.file) throw Object.assign(new Error("Resource file is required"), { status: 400 });
-      validateContributorFile(req.file);
+      const fileKind = validateContributorFile(req.file);
 
       const input = parseContributorUploadBody(req.body);
-      const file = await saveUploadedFile(user.uid, req.file, "resources");
+      const file = await saveUploadedFile(user.uid, req.file, "resources", [
+        input.university,
+        input.degree,
+        input.semester,
+        input.course,
+      ]);
       const resource = await storage.createContributorResource({
         ...input,
         file,
         uploaderId: user.uid,
         uploaderEmail: user.email,
         uploaderName: user.name,
+        fileCategory: fileKind.category,
+        fileExtension: fileKind.extension,
       });
       trackEvent("contributor_resource_submitted", user.uid, {
         resourceId: resource.id,

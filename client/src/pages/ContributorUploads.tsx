@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { ExternalLink, FileText, Home, Loader2, UploadCloud } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Archive, Copy, Download, Edit3, ExternalLink, FileText, Filter, Home, Loader2, MoreHorizontal, Search, Trash2, UploadCloud } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
 const statusStyles: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700 border-amber-200",
-  approved: "bg-green-100 text-green-700 border-green-200",
-  rejected: "bg-red-100 text-red-700 border-red-200",
-  changes_requested: "bg-blue-100 text-blue-700 border-blue-200",
+  pending: "bg-amber-50 text-amber-700 border-amber-200",
+  approved: "bg-green-50 text-green-700 border-green-200",
+  rejected: "bg-red-50 text-red-700 border-red-200",
+  changes_requested: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
 export default function ContributorUploads() {
@@ -19,6 +23,8 @@ export default function ContributorUploads() {
   const [uploads, setUploads] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -40,74 +46,246 @@ export default function ContributorUploads() {
     void loadUploads();
   }, [setLocation]);
 
+  const filteredUploads = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return uploads.filter((resource) => {
+      const matchesSearch = !query || `${resource.title} ${resource.course} ${resource.university} ${resource.resourceType} ${resource.tags?.join(" ")}`.toLowerCase().includes(query);
+      const matchesStatus = status === "all" || resource.status === status;
+      return matchesSearch && matchesStatus;
+    });
+  }, [uploads, search, status]);
+
+  const totalDownloads = uploads.reduce((sum, resource) => sum + Number(resource.downloads || 0), 0);
+  const storageUsed = uploads.reduce((sum, resource) => sum + Number(resource.fileSize || resource.file?.size || 0), 0);
+  const approved = uploads.filter((resource) => resource.status === "approved").length;
+  const reputationProgress = Math.min(100, approved * 12 + uploads.length * 3);
+
   return (
-    <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
+    <div className="min-h-[calc(100vh-170px)] bg-muted/10">
       <div className="border-b bg-background shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
-        <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
-          <Home className="mr-2 h-4 w-4" />
-          Back to Home
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-bold truncate">My Uploads</h1>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Submission history</p>
-        </div>
-        <Button size="sm" onClick={() => setLocation("/contributors/upload")}>
-          <UploadCloud className="w-4 h-4 mr-2" />
-          Add
-        </Button>
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <Button variant="outline" size="sm" className="mb-3 rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
+              <Home className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+            <h1 className="text-3xl font-black tracking-normal">My Uploads</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Manage submitted resources, review status, and contribution progress.</p>
+          </div>
+          <Button className="h-12 rounded-2xl px-6 font-bold shadow-lg shadow-primary/15" onClick={() => setLocation("/contributors/upload")}>
+            <UploadCloud className="mr-2 h-4 w-4" />
+            Upload Resource
+          </Button>
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
-        {isLoading ? (
-          <State icon={Loader2} title="Loading uploads" text="Checking your submitted resources." spin />
-        ) : hasError ? (
-          <State icon={FileText} title="Could not load uploads" text="Please try again in a moment." />
-        ) : uploads.length === 0 ? (
-          <State icon={UploadCloud} title="No uploads yet" text="Start by submitting your first academic resource." action={() => setLocation("/contributors/upload")} />
-        ) : (
-          <div className="space-y-4">
-            {uploads.map((resource) => (
-              <Card key={resource.id} className="border-border/50 shadow-sm">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0">
-                      <h2 className="font-bold text-base leading-snug">{resource.title}</h2>
-                      <p className="text-xs text-muted-foreground mt-1">{resource.course} / {resource.university}</p>
-                    </div>
-                    <Badge variant="outline" className={statusStyles[resource.status] || statusStyles.pending}>
-                      {labelStatus(resource.status)}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{resource.description || "No description provided."}</p>
-                  <div className="mb-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-                    <span><strong className="text-foreground">Type:</strong> {labelType(resource.resourceType)}</span>
-                    <span><strong className="text-foreground">Uploaded:</strong> {formatDate(resource.createdAt)}</span>
-                    <span><strong className="text-foreground">Course:</strong> {resource.course}</span>
-                  </div>
-                  {(resource.status === "rejected" || resource.status === "changes_requested") && resource.rejectionReason && (
-                    <div className="rounded-xl bg-red-500/5 border border-red-500/10 p-3 mb-4">
-                      <p className="text-xs font-bold text-red-700 uppercase tracking-widest mb-1">Review note</p>
-                      <p className="text-sm text-red-700/80">{resource.rejectionReason}</p>
-                    </div>
-                  )}
-                  <Button variant="outline" className="w-full rounded-xl" onClick={() => window.open(resource.fileUrl || resource.file?.url, "_blank")}>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View File
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[1fr_320px]">
+        <main className="space-y-5">
+          <Card className="border-border/60 shadow-sm">
+            <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_220px_auto]">
+              <div className="relative">
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
+                <Input className="h-12 rounded-2xl pl-12" placeholder="Search title, course, university, tags..." value={search} onChange={(event) => setSearch(event.target.value)} />
+              </div>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-12 rounded-2xl">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="changes_requested">Needs Changes</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-12 rounded-2xl font-bold" onClick={() => setLocation("/contributors/upload")}>
+                <UploadCloud className="mr-2 h-4 w-4" />
+                Add
+              </Button>
+            </CardContent>
+          </Card>
+
+          {isLoading ? (
+            <State icon={Loader2} title="Loading uploads" text="Checking your submitted resources." spin />
+          ) : hasError ? (
+            <State icon={FileText} title="Could not load uploads" text="Please try again in a moment." />
+          ) : uploads.length === 0 ? (
+            <EmptyUploads onUpload={() => setLocation("/contributors/upload")} />
+          ) : filteredUploads.length === 0 ? (
+            <State icon={Search} title="No resources match your filters" text="Try another search term or status filter." />
+          ) : (
+            <Card className="overflow-hidden border-border/60 shadow-sm">
+              <div className="hidden grid-cols-[1.6fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.7fr_0.7fr_112px] gap-3 border-b bg-muted/30 px-4 py-3 text-xs font-black uppercase tracking-wide text-muted-foreground lg:grid">
+                <span>Resource</span>
+                <span>Course</span>
+                <span>University</span>
+                <span>Semester</span>
+                <span>Type</span>
+                <span>Status</span>
+                <span>Date</span>
+                <span>Stats</span>
+                <span>Actions</span>
+              </div>
+              <div className="divide-y divide-border/60">
+                {filteredUploads.map((resource) => (
+                  <ResourceRow key={resource.id} resource={resource} />
+                ))}
+              </div>
+            </Card>
+          )}
+        </main>
+
+        <aside className="space-y-4">
+          <Card className="border-border/60 shadow-sm">
+            <CardContent className="p-5">
+              <h2 className="font-black">Contributor Tips</h2>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-muted-foreground">
+                <p>Use clear titles with course codes and semester details.</p>
+                <p>Add tags like midterm, solved, lab, formula sheet, or lecture.</p>
+                <p>Keep files original or share only with permission.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 shadow-sm">
+            <CardContent className="p-5">
+              <h2 className="font-black">Guidelines</h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">Resources with complete metadata are reviewed faster and are easier for students to discover.</p>
+              <Button variant="outline" className="mt-4 w-full rounded-2xl font-bold" onClick={() => setLocation("/contribute#how-it-works")}>View Guidelines</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 shadow-sm">
+            <CardContent className="space-y-5 p-5">
+              <SideMetric label="Storage used" value={formatSize(storageUsed)} />
+              <SideMetric label="Total downloads" value={totalDownloads} />
+              <div>
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-bold">Reputation progress</span>
+                  <span className="font-black text-primary">{reputationProgress}%</span>
+                </div>
+                <Progress value={reputationProgress} className="h-2" />
+              </div>
+            </CardContent>
+          </Card>
+        </aside>
       </div>
     </div>
   );
 }
 
+function ResourceRow({ resource }: { resource: any }) {
+  const fileUrl = resource.fileUrl || resource.file?.url;
+  const openFile = () => fileUrl && window.open(fileUrl, "_blank");
+
+  return (
+    <div className="grid gap-3 p-4 lg:grid-cols-[1.6fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.7fr_0.7fr_112px] lg:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate font-black">{resource.title}</h3>
+          <p className="truncate text-xs text-muted-foreground">{resource.fileName || resource.file?.originalName || "Resource file"}</p>
+        </div>
+      </div>
+      <DataCell label="Course" value={resource.course} />
+      <DataCell label="University" value={resource.university} />
+      <DataCell label="Semester" value={resource.semester} />
+      <DataCell label="Type" value={labelType(resource.resourceType)} />
+      <div>
+        <span className="mb-1 block text-xs font-bold text-muted-foreground lg:hidden">Status</span>
+        <Badge variant="outline" className={statusStyles[resource.status] || statusStyles.pending}>{labelStatus(resource.status)}</Badge>
+      </div>
+      <DataCell label="Upload Date" value={formatDate(resource.createdAt)} />
+      <div className="text-sm text-muted-foreground">
+        <span className="mb-1 block text-xs font-bold text-muted-foreground lg:hidden">Stats</span>
+        <div>{Number(resource.downloads || 0)} downloads</div>
+        <div>{Number(resource.views || 0)} views</div>
+      </div>
+      <div className="flex flex-wrap gap-2 lg:justify-end">
+        <Button variant="outline" size="icon" className="rounded-xl" onClick={openFile} title="View">
+          <ExternalLink className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" className="rounded-xl" onClick={openFile} title="Download">
+          <Download className="h-4 w-4" />
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled><Edit3 className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+            <DropdownMenuItem disabled><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+            <DropdownMenuItem disabled><Copy className="mr-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      {(resource.status === "rejected" || resource.status === "changes_requested") && resource.rejectionReason && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 lg:col-span-9">
+          <strong>Review note:</strong> {resource.rejectionReason}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DataCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 text-sm">
+      <span className="mb-1 block text-xs font-bold text-muted-foreground lg:hidden">{label}</span>
+      <span className="truncate text-muted-foreground lg:block">{value || "Not added"}</span>
+    </div>
+  );
+}
+
+function SideMetric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+      <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function EmptyUploads({ onUpload }: { onUpload: () => void }) {
+  return (
+    <Card className="border-dashed border-border/70 shadow-sm">
+      <CardContent className="p-10 text-center">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-primary/10 text-primary">
+          <Archive className="h-10 w-10" />
+        </div>
+        <h2 className="text-2xl font-black">Upload your first study resource</h2>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">Share notes, slides, papers, voice notes, or lecture recordings and help build Pakistan's student resource library.</p>
+        <Button className="mt-6 rounded-2xl px-6 font-bold" onClick={onUpload}>
+          <UploadCloud className="mr-2 h-4 w-4" />
+          Upload Resource
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function State({ icon: Icon, title, text, spin }: { icon: any; title: string; text: string; spin?: boolean }) {
+  return (
+    <Card className="border-border/60 shadow-sm">
+      <CardContent className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon className={`h-7 w-7 ${spin ? "animate-spin" : ""}`} />
+        </div>
+        <h2 className="font-black">{title}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{text}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function labelStatus(status: string) {
-  if (status === "changes_requested") return "Changes requested";
+  if (status === "changes_requested") return "Needs Changes";
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
 }
 
@@ -121,15 +299,8 @@ function formatDate(value: unknown) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-function State({ icon: Icon, title, text, action, spin }: { icon: any; title: string; text: string; action?: () => void; spin?: boolean }) {
-  return (
-    <div className="min-h-80 flex flex-col items-center justify-center text-center px-6">
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-        <Icon className={`w-7 h-7 ${spin ? "animate-spin" : ""}`} />
-      </div>
-      <h2 className="font-bold text-lg">{title}</h2>
-      <p className="text-sm text-muted-foreground mt-2 mb-5">{text}</p>
-      {action && <Button onClick={action}>Upload Resource</Button>}
-    </div>
-  );
+function formatSize(size: number) {
+  if (!size) return "0 MB";
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }

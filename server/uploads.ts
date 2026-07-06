@@ -4,22 +4,62 @@ import { bucket } from "./firebaseAdmin";
 
 const allowedMimeTypes = new Set([
   "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain",
+  "text/csv",
+  "application/csv",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-rar-compressed",
+  "application/vnd.rar",
+  "application/x-7z-compressed",
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/gif",
   "audio/mpeg",
+  "audio/mp3",
   "audio/mp4",
   "audio/webm",
   "audio/wav",
+  "video/mp4",
+]);
+
+const allowedExtensions = new Set([
+  "pdf",
+  "doc",
+  "docx",
+  "ppt",
+  "pptx",
+  "xls",
+  "xlsx",
+  "txt",
+  "csv",
+  "zip",
+  "rar",
+  "7z",
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "gif",
+  "mp3",
+  "mp4",
 ]);
 
 export const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 25 * 1024 * 1024,
+    fileSize: 100 * 1024 * 1024,
   },
   fileFilter: (_req, file, cb) => {
-    if (!allowedMimeTypes.has(file.mimetype)) {
+    const extension = extensionFor(file.originalname);
+    if (!allowedMimeTypes.has(file.mimetype) && !allowedExtensions.has(extension)) {
       cb(Object.assign(new Error("Unsupported file type"), { status: 400 }));
       return;
     }
@@ -27,9 +67,27 @@ export const upload = multer({
   },
 });
 
-export async function saveUploadedFile(userId: string, file: Express.Multer.File, folder = "uploads") {
-  const extension = file.originalname.includes(".") ? file.originalname.split(".").pop() : "bin";
-  const path = `${folder}/${userId}/${Date.now()}-${randomUUID()}.${extension}`;
+export function extensionFor(fileName: string) {
+  return fileName.includes(".") ? fileName.split(".").pop()!.toLowerCase() : "bin";
+}
+
+function safeSegment(value: string) {
+  return value
+    .trim()
+    .replace(/[\\/#?%*:|"<>]/g, "-")
+    .replace(/\s+/g, " ")
+    .slice(0, 90) || "Unspecified";
+}
+
+export async function saveUploadedFile(
+  userId: string,
+  file: Express.Multer.File,
+  folder = "uploads",
+  segments: string[] = [],
+) {
+  const extension = extensionFor(file.originalname);
+  const organizedPath = segments.length ? `${segments.map(safeSegment).join("/")}/` : `${userId}/`;
+  const path = `${folder}/${organizedPath}${Date.now()}-${randomUUID()}.${extension}`;
   const storageFile = bucket.file(path);
   const downloadToken = randomUUID();
 

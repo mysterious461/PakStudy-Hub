@@ -64,7 +64,7 @@ export interface IStorage {
   getLeaderboard(): Promise<User[]>;
   createResource(input: AcademicResourceMetadata & { file: StoredFile; uploadedBy: string; uploadedByName: string }): Promise<AcademicResource>;
   listResources(filters?: { visibility?: string }): Promise<AcademicResource[]>;
-  createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string }): Promise<AcademicResource>;
+  createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string; fileCategory?: string; fileExtension?: string }): Promise<AcademicResource>;
   listResourcesByUploader(uploaderId: string): Promise<AcademicResource[]>;
   getContributorStats(uploaderId: string): Promise<{ totalUploads: number; approvedUploads: number; pendingUploads: number; rejectedUploads: number; reputationPoints: number; badgeStatus: string }>;
   listPendingResources(): Promise<AcademicResource[]>;
@@ -185,11 +185,17 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
     degree: data.degree,
     semester: data.semester,
     course: data.course,
+    subject: data.subject ?? data.course,
     resourceType: data.resourceType,
     title: data.title,
     year: data.year ?? new Date().getFullYear(),
+    language: data.language ?? "English",
     description: data.description ?? "",
     tags: data.tags ?? [],
+    teacherName: data.teacherName ?? "",
+    examSession: data.examSession ?? "",
+    edition: data.edition ?? "",
+    publisher: data.publisher ?? "",
     visibility: data.visibility ?? "draft",
     uploaderNameSource: data.uploaderNameSource ?? data.uploaderName ?? "Contributor",
     permissionStatus: data.permissionStatus ?? "pending",
@@ -207,6 +213,12 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
     fileName: data.fileName ?? file.originalName,
     fileType: data.fileType ?? file.contentType,
     fileSize: data.fileSize ?? file.size,
+    fileCategory: data.fileCategory ?? "",
+    fileExtension: data.fileExtension ?? "",
+    previewStatus: data.previewStatus ?? "unavailable",
+    processingStatus: data.processingStatus ?? "pending",
+    downloads: data.downloads ?? 0,
+    views: data.views ?? 0,
     hasPermission: data.hasPermission ?? data.permissionStatus === "permission_granted",
     createdAt: toDate(data.createdAt),
     updatedAt: data.updatedAt ? toDate(data.updatedAt) : undefined,
@@ -591,7 +603,7 @@ export class FirestoreStorage implements IStorage {
     return sortByCreatedAtDesc(snap.docs.map((doc) => normalizeResource(doc.id, doc.data())));
   }
 
-  async createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string }): Promise<AcademicResource> {
+  async createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string; fileCategory?: string; fileExtension?: string }): Promise<AcademicResource> {
     const ref = db.collection("resources").doc();
     await ref.set({
       university: input.university,
@@ -599,11 +611,17 @@ export class FirestoreStorage implements IStorage {
       degree: input.degree,
       semester: input.semester,
       course: input.course,
+      subject: input.subject,
       resourceType: input.resourceType,
       title: input.title,
-      year: new Date().getFullYear(),
+      year: input.year ?? new Date().getFullYear(),
+      language: input.language,
       description: input.description,
       tags: input.tags ?? [],
+      teacherName: input.teacherName ?? "",
+      examSession: input.examSession ?? "",
+      edition: input.edition ?? "",
+      publisher: input.publisher ?? "",
       visibility: "private",
       uploaderNameSource: input.uploaderName,
       permissionStatus: "permission_granted",
@@ -616,6 +634,18 @@ export class FirestoreStorage implements IStorage {
       fileName: input.file.originalName,
       fileType: input.file.contentType,
       fileSize: input.file.size,
+      fileCategory: input.fileCategory ?? "",
+      fileExtension: input.fileExtension ?? "",
+      previewStatus: ["image", "audio", "video", "pdf"].includes(input.fileCategory ?? "") ? "ready" : "unavailable",
+      processingStatus: "pending",
+      ocrStatus: "pending",
+      aiSummaryStatus: "pending",
+      aiFlashcardsStatus: "pending",
+      aiQuizStatus: "pending",
+      virusScanStatus: "pending",
+      duplicateCheckStatus: "pending",
+      downloads: 0,
+      views: 0,
       uploadedBy: input.uploaderId,
       uploadedByName: input.uploaderName,
       uploaderId: input.uploaderId,
