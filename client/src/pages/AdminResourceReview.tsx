@@ -103,9 +103,11 @@ export default function AdminResourceReview() {
                   </div>
                   <div className="rounded-2xl bg-muted/30 p-4 text-sm space-y-2 mb-4">
                     <Meta label="University" value={resource.university} />
-                    <Meta label="Department" value={resource.department} />
+                    <Meta label="Faculty" value={resource.faculty || resource.department} />
+                    <Meta label="Degree Program" value={resource.degree} />
+                    <Meta label="Semester" value={resource.semester} />
                     <Meta label="Course" value={resource.course} />
-                    <Meta label="Type" value={labelType(resource.resourceType)} />
+                    <Meta label="Category" value={labelType(resource.resourceCategory || resource.resourceType)} />
                     <Meta label="File" value={`${resource.fileName || "Resource"} / ${formatSize(resource.fileSize || 0)}`} />
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{resource.description}</p>

@@ -16,11 +16,13 @@ const currentYear = new Date().getFullYear();
 
 const initialForm = {
   university: "",
+  faculty: "",
   department: "",
   degree: "",
   semester: "",
   course: "",
   subject: "",
+  resourceCategory: "notes",
   resourceType: "notes",
   language: "English",
   title: "",
@@ -38,8 +40,9 @@ type UploadForm = typeof initialForm;
 
 const requiredFields: Array<{ key: keyof UploadForm; label: string; minLength?: number }> = [
   { key: "university", label: "University", minLength: 2 },
-  { key: "department", label: "Department", minLength: 2 },
-  { key: "degree", label: "Degree", minLength: 2 },
+  { key: "faculty", label: "Faculty", minLength: 2 },
+  { key: "department", label: "Faculty", minLength: 2 },
+  { key: "degree", label: "Degree Program", minLength: 2 },
   { key: "semester", label: "Semester" },
   { key: "course", label: "Course", minLength: 2 },
   { key: "subject", label: "Subject", minLength: 2 },
@@ -127,7 +130,12 @@ export default function ContributorUpload() {
   const estimatedSeconds = Math.max(1, Math.ceil(selectedSize / (1.5 * 1024 * 1024)));
 
   const updateField = (field: keyof UploadForm, value: string | boolean) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "faculty" ? { department: String(value) } : {}),
+      ...(field === "resourceCategory" ? { resourceType: mapCategoryToResourceType(String(value)) } : {}),
+    }));
   };
 
   const addFiles = (selected: FileList | File[]) => {
@@ -228,25 +236,24 @@ export default function ContributorUpload() {
               <Card className="border-border/60 shadow-sm">
                 <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
                   <Field label="University"><Input placeholder="National University of Sciences and Technology" value={form.university} onChange={(event) => updateField("university", event.target.value)} required /></Field>
-                  <Field label="Department"><Input placeholder="School of Electrical Engineering" value={form.department} onChange={(event) => updateField("department", event.target.value)} required /></Field>
-                  <Field label="Degree"><Input placeholder="BS Computer Science" value={form.degree} onChange={(event) => updateField("degree", event.target.value)} required /></Field>
+                  <Field label="Faculty"><Input placeholder="Faculty of Engineering" value={form.faculty} onChange={(event) => updateField("faculty", event.target.value)} required /></Field>
+                  <Field label="Degree Program"><Input placeholder="BS Computer Science" value={form.degree} onChange={(event) => updateField("degree", event.target.value)} required /></Field>
                   <Field label="Semester"><Input placeholder="4th semester" value={form.semester} onChange={(event) => updateField("semester", event.target.value)} required /></Field>
                   <Field label="Course"><Input placeholder="CS-201 Data Structures" value={form.course} onChange={(event) => updateField("course", event.target.value)} required /></Field>
                   <Field label="Subject"><Input placeholder="Algorithms, Calculus, Circuits" value={form.subject} onChange={(event) => updateField("subject", event.target.value)} required /></Field>
-                  <Field label="Resource Type">
-                    <Select value={form.resourceType} onValueChange={(value) => updateField("resourceType", value)}>
+                  <Field label="Resource Category">
+                    <Select value={form.resourceCategory} onValueChange={(value) => updateField("resourceCategory", value)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="notes">Notes</SelectItem>
-                        <SelectItem value="past_papers">Past Papers</SelectItem>
                         <SelectItem value="slides">Slides</SelectItem>
-                        <SelectItem value="lab_manual">Lab Manual</SelectItem>
-                        <SelectItem value="assignment_solution">Assignment Solution</SelectItem>
-                        <SelectItem value="formula_sheet">Formula Sheet</SelectItem>
-                        <SelectItem value="lecture_recording">Lecture Recording</SelectItem>
-                        <SelectItem value="voice_note">Voice Note</SelectItem>
-                        <SelectItem value="archive">Archive</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="past_papers">Past Papers</SelectItem>
+                        <SelectItem value="assignments">Assignments</SelectItem>
+                        <SelectItem value="lab_manuals">Lab Manuals</SelectItem>
+                        <SelectItem value="projects">Projects</SelectItem>
+                        <SelectItem value="formula_sheets">Formula Sheets</SelectItem>
+                        <SelectItem value="tutorials">Tutorials</SelectItem>
+                        <SelectItem value="quizzes">Quizzes</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -458,4 +465,19 @@ function formatSize(size: number) {
   if (!size) return "0 MB";
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function mapCategoryToResourceType(category: string) {
+  const map: Record<string, string> = {
+    notes: "notes",
+    slides: "slides",
+    past_papers: "past_papers",
+    assignments: "assignment_solution",
+    lab_manuals: "lab_manual",
+    projects: "other",
+    formula_sheets: "formula_sheet",
+    tutorials: "other",
+    quizzes: "other",
+  };
+  return map[category] || "notes";
 }

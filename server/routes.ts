@@ -590,9 +590,11 @@ export async function registerRoutes(
       const input = parseContributorUploadBody(req.body);
       const file = await saveUploadedFile(user.uid, req.file, "resources", [
         input.university,
+        input.faculty,
         input.degree,
         input.semester,
         input.course,
+        input.resourceCategory,
       ]);
       const resource = await storage.createContributorResource({
         ...input,

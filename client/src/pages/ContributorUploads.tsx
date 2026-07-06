@@ -49,7 +49,7 @@ export default function ContributorUploads() {
   const filteredUploads = useMemo(() => {
     const query = search.trim().toLowerCase();
     return uploads.filter((resource) => {
-      const matchesSearch = !query || `${resource.title} ${resource.course} ${resource.university} ${resource.resourceType} ${resource.tags?.join(" ")}`.toLowerCase().includes(query);
+      const matchesSearch = !query || `${resource.title} ${resource.course} ${resource.university} ${resource.faculty || resource.department} ${resource.degree} ${resource.resourceCategory || resource.resourceType} ${resource.tags?.join(" ")}`.toLowerCase().includes(query);
       const matchesStatus = status === "all" || resource.status === status;
       return matchesSearch && matchesStatus;
     });
@@ -120,9 +120,9 @@ export default function ContributorUploads() {
               <div className="hidden grid-cols-[1.6fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.7fr_0.7fr_112px] gap-3 border-b bg-muted/30 px-4 py-3 text-xs font-black uppercase tracking-wide text-muted-foreground lg:grid">
                 <span>Resource</span>
                 <span>Course</span>
-                <span>University</span>
+                <span>Hierarchy</span>
                 <span>Semester</span>
-                <span>Type</span>
+                <span>Category</span>
                 <span>Status</span>
                 <span>Date</span>
                 <span>Stats</span>
@@ -192,9 +192,9 @@ function ResourceRow({ resource }: { resource: any }) {
         </div>
       </div>
       <DataCell label="Course" value={resource.course} />
-      <DataCell label="University" value={resource.university} />
+      <DataCell label="Hierarchy" value={`${resource.university || "University"} / ${resource.faculty || resource.department || "Faculty"} / ${resource.degree || "Degree"}`} />
       <DataCell label="Semester" value={resource.semester} />
-      <DataCell label="Type" value={labelType(resource.resourceType)} />
+      <DataCell label="Category" value={labelType(resource.resourceCategory || resource.resourceType)} />
       <div>
         <span className="mb-1 block text-xs font-bold text-muted-foreground lg:hidden">Status</span>
         <Badge variant="outline" className={statusStyles[resource.status] || statusStyles.pending}>{labelStatus(resource.status)}</Badge>

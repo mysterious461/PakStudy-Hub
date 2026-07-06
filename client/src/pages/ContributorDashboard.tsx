@@ -204,7 +204,8 @@ function UploadPreviewCard({ resource, onView }: { resource: any; onView: () => 
           <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
             <span>{resource.course}</span>
             <span>{resource.university}</span>
-            <span>{resource.semester}</span>
+            <span>{resource.faculty || resource.department}</span>
+            <span>{resource.semester} / {labelCategory(resource)}</span>
             <span>{formatDate(resource.createdAt)}</span>
           </div>
         </div>
@@ -271,6 +272,10 @@ function EmptyPanel({ onUpload }: { onUpload: () => void }) {
 function labelStatus(status: string) {
   if (status === "changes_requested") return "Needs Changes";
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
+}
+
+function labelCategory(resource: any) {
+  return (resource.resourceCategory || resource.resourceType || "notes").replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase());
 }
 
 function formatDate(value: unknown) {

@@ -181,11 +181,13 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
   return {
     id,
     university: data.university,
+    faculty: data.faculty ?? data.department ?? "",
     department: data.department,
     degree: data.degree,
     semester: data.semester,
     course: data.course,
     subject: data.subject ?? data.course,
+    resourceCategory: data.resourceCategory ?? data.resourceType ?? "notes",
     resourceType: data.resourceType,
     title: data.title,
     year: data.year ?? new Date().getFullYear(),
@@ -607,11 +609,13 @@ export class FirestoreStorage implements IStorage {
     const ref = db.collection("resources").doc();
     await ref.set({
       university: input.university,
+      faculty: input.faculty,
       department: input.department,
       degree: input.degree,
       semester: input.semester,
       course: input.course,
       subject: input.subject,
+      resourceCategory: input.resourceCategory,
       resourceType: input.resourceType,
       title: input.title,
       year: input.year ?? new Date().getFullYear(),

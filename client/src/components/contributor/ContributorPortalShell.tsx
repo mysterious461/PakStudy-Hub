@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BookOpen, Files, GraduationCap, HelpCircle, Home, LayoutDashboard, LogIn, LogOut, Menu, ShieldCheck, User, X } from "lucide-react";
+import { BookOpen, Files, Home, LayoutDashboard, LogIn, LogOut, Menu, ShieldCheck, User, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -187,12 +187,24 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
       <main>{children}</main>
 
       <footer className="border-t border-border/60 bg-background">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 text-sm text-muted-foreground sm:grid-cols-5 sm:px-6">
-          <FooterLink label="About PakStudy Hub" />
-          <FooterLink label="Contributor Guidelines" />
-          <FooterLink label="Help Center" />
-          <FooterLink label="Contact" />
-          <FooterLink label="Privacy Policy" />
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_repeat(5,1fr)]">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl border border-border/50 bg-white p-1.5 shadow-sm">
+                <img src={logoImage} alt="PakStudy Hub" className="h-full w-full object-contain" />
+              </div>
+              <div>
+                <p className="font-black">PakStudy Hub</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Student Resource Library</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-7 text-muted-foreground">A reviewed academic resource library built by students for students across Pakistan.</p>
+          </div>
+          <FooterGroup title="Company" links={[["About", "/about"], ["Roadmap", "/about"], ["Future Universities", "/about"]]} onNavigate={goTo} />
+          <FooterGroup title="Community" links={[["Contribute", "/contributors/upload"], ["Dashboard", "/contributors/dashboard"], ["My Uploads", "/contributors/uploads"]]} onNavigate={goTo} />
+          <FooterGroup title="Resources" links={[["Guidelines", "/guidelines"], ["Help Center", "/help"], ["Upload Rules", "/guidelines"]]} onNavigate={goTo} />
+          <FooterGroup title="Support" links={[["Contact", "/contact"], ["Common Issues", "/help"], ["Support Request", "/help"]]} onNavigate={goTo} />
+          <FooterGroup title="Legal & Social" links={[["Privacy Policy", "/privacy"], ["GitHub", "/contact"], ["LinkedIn", "/contact"], ["Facebook", "/contact"], ["Instagram", "/contact"], ["YouTube", "/contact"]]} onNavigate={goTo} />
         </div>
       </footer>
     </div>
@@ -234,12 +246,17 @@ function MobileNavButton({ icon: Icon, label, onClick }: { icon: any; label: str
   );
 }
 
-function FooterLink({ label }: { label: string }) {
-  const Icon = label === "Help Center" ? HelpCircle : label === "About PakStudy Hub" ? GraduationCap : null;
+function FooterGroup({ title, links, onNavigate }: { title: string; links: string[][]; onNavigate: (path: string) => void }) {
   return (
-    <button className="flex items-center gap-2 text-left font-semibold hover:text-primary">
-      {Icon ? <Icon className="h-4 w-4" /> : null}
-      {label}
-    </button>
+    <div>
+      <h3 className="mb-3 text-sm font-black">{title}</h3>
+      <div className="space-y-2">
+        {links.map(([label, path]) => (
+          <button key={`${title}-${label}`} className="block text-left text-sm font-semibold text-muted-foreground hover:text-primary" onClick={() => onNavigate(path)}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

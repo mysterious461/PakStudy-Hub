@@ -31,6 +31,7 @@ import ContributorLanding from "@/pages/ContributorLanding";
 import ContributorDashboard from "@/pages/ContributorDashboard";
 import ContributorUpload from "@/pages/ContributorUpload";
 import ContributorUploads from "@/pages/ContributorUploads";
+import { AboutPakStudy, ContactPage, ContributorGuidelines, HelpCenter, PrivacyPolicy } from "@/pages/PortalInfoPages";
 
 function Router() {
   const [location] = useLocation();
@@ -40,6 +41,11 @@ function Router() {
     location === "/profile" ||
     location === "/admin" ||
     location === "/admin/resources/review" ||
+    location.startsWith("/about") ||
+    location.startsWith("/guidelines") ||
+    location.startsWith("/help") ||
+    location.startsWith("/contact") ||
+    location.startsWith("/privacy") ||
     location.startsWith("/contributors");
 
   if (location === "/auth" || location.startsWith("/auth?")) {
@@ -59,6 +65,11 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
           <Route path="/admin/resources/review" component={AdminResourceReview} />
+          <Route path="/about" component={AboutPakStudy} />
+          <Route path="/guidelines" component={ContributorGuidelines} />
+          <Route path="/help" component={HelpCenter} />
+          <Route path="/contact" component={ContactPage} />
+          <Route path="/privacy" component={PrivacyPolicy} />
           <Route component={NotFound} />
         </Switch>
       </ContributorPortalLayout>
