@@ -112,9 +112,9 @@ export default function AdminResourceReview() {
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{resource.description}</p>
                   <div className="grid grid-cols-1 gap-2">
-                    <Button variant="outline" className="rounded-xl" onClick={() => window.open(resource.fileUrl || resource.file?.url, "_blank")}>
+                    <Button variant="outline" className="rounded-xl" onClick={() => setLocation(`/resources/${resource.id}`)}>
                       <ExternalLink className="w-4 h-4 mr-2" />
-                      View File
+                      View Details
                     </Button>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                       <Button className="rounded-xl" onClick={() => submitReview(resource, "approved")}>

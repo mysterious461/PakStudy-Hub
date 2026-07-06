@@ -17,6 +17,7 @@ import Sell from "@/pages/Sell";
 import Library from "@/pages/Library";
 import Admin from "@/pages/Admin";
 import AdminUpload from "@/pages/AdminUpload";
+import AdminResources from "@/pages/AdminResources";
 import AdminResourceReview from "@/pages/AdminResourceReview";
 import AdminContactMessages from "@/pages/AdminContactMessages";
 import Achievements from "@/pages/Achievements";
@@ -43,6 +44,7 @@ function Router() {
     location === "/contribute" ||
     location === "/profile" ||
     location === "/admin" ||
+    location === "/admin/resources" ||
     location === "/admin/resources/review" ||
     location === "/admin/contact-messages" ||
     location.startsWith("/about") ||
@@ -73,9 +75,10 @@ function Router() {
           <Route path="/resources/:resourceId" component={ResourceDetail} />
           <Route path="/resources" component={ResourceSearch} />
           <Route path="/profile" component={Profile} />
-          <Route path="/admin" component={Admin} />
           <Route path="/admin/resources/review" component={AdminResourceReview} />
+          <Route path="/admin/resources" component={AdminResources} />
           <Route path="/admin/contact-messages" component={AdminContactMessages} />
+          <Route path="/admin" component={Admin} />
           <Route path="/about" component={AboutPakStudy} />
           <Route path="/guidelines" component={ContributorGuidelines} />
           <Route path="/help" component={HelpCenter} />
@@ -102,9 +105,10 @@ function Router() {
         <Route path="/profile" component={Profile} />
         <Route path="/library" component={Library} />
         <Route path="/question/:id" component={QuestionDetail} />
-        <Route path="/admin" component={Admin} />
         <Route path="/admin-upload" component={AdminUpload} />
         <Route path="/admin/resources/review" component={AdminResourceReview} />
+        <Route path="/admin/resources" component={AdminResources} />
+        <Route path="/admin" component={Admin} />
         <Route path="/contributors/dashboard" component={ContributorDashboard} />
         <Route path="/contributors/upload" component={ContributorUpload} />
         <Route path="/contributors/uploads" component={ContributorUploads} />

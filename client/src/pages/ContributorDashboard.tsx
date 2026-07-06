@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Award, Bell, BookOpenCheck, CheckCircle, Clock, Download, Edit3, Eye, FileText, Home, Loader2, TrendingUp, UploadCloud, Users, XCircle } from "lucide-react";
+import { Award, Bell, BookOpenCheck, CheckCircle, Clock, Download, Edit3, Eye, FileText, Home, Loader2, Search, TrendingUp, UploadCloud, Users, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export default function ContributorDashboard() {
       try {
         const [statsResponse, uploadsResponse] = await Promise.all([
           apiRequest("GET", "/api/contributor/stats"),
-          apiRequest("GET", "/api/contributor/resources"),
+          apiRequest("GET", "/api/resources/mine"),
         ]);
         setStats(await statsResponse.json());
         setUploads(await uploadsResponse.json());
@@ -108,7 +108,7 @@ export default function ContributorDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {recentUploads.map((resource) => (
-                      <UploadPreviewCard key={resource.id} resource={resource} onView={() => window.open(resource.fileUrl || resource.file?.url, "_blank")} />
+                      <UploadPreviewCard key={resource.id} resource={resource} onView={() => setLocation(`/resources/${resource.id}`)} />
                     ))}
                   </div>
                 )}
@@ -145,6 +145,7 @@ export default function ContributorDashboard() {
                 <Card className="border-border/60 shadow-sm">
                   <CardContent className="space-y-3 p-4">
                     <QuickAction icon={UploadCloud} label="Upload Resource" onClick={() => setLocation("/contributors/upload")} primary />
+                    <QuickAction icon={Search} label="Browse Resources" onClick={() => setLocation("/resources")} />
                     <QuickAction icon={FileText} label="My Uploads" onClick={() => setLocation("/contributors/uploads")} />
                     <QuickAction icon={Edit3} label="Edit Profile" onClick={() => setLocation("/profile")} />
                     <QuickAction icon={BookOpenCheck} label="Contributor Guidelines" onClick={() => setLocation("/contribute#how-it-works")} />

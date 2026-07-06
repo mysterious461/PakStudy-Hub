@@ -38,7 +38,7 @@ export default function ResourceDetail() {
         if (cancelled) return;
         setResource(payload);
         void fetch(`/api/resources/${resourceId}/view`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : undefined });
-        const relatedResponse = await fetch(`/api/resources?courseCode=${encodeURIComponent(payload.courseCode || "")}&resourceType=${encodeURIComponent(payload.resourceCategory || payload.resourceType || "")}`);
+        const relatedResponse = await fetch(`/api/resources/public?courseCode=${encodeURIComponent(payload.courseCode || "")}&resourceType=${encodeURIComponent(payload.resourceCategory || payload.resourceType || "")}`);
         if (relatedResponse.ok) {
           const relatedPayload = await relatedResponse.json();
           if (!cancelled) setRelated(relatedPayload.filter((item: any) => item.id !== payload.id).slice(0, 3));
@@ -133,6 +133,8 @@ export default function ResourceDetail() {
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_360px]">
         <main className="space-y-5">
+          <PreviewPanel resource={resource} />
+
           <Card className="border-border/60 shadow-sm">
             <CardContent className="p-6">
               <div className="mb-5 flex items-center gap-4">
@@ -223,6 +225,48 @@ function Meta({ label, value }: { label: string; value: string }) {
 
 function MiniMetric({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
   return <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 text-center"><Icon className="mx-auto mb-2 h-4 w-4 text-primary" /><p className="font-black">{value}</p><p className="text-[10px] font-bold uppercase text-muted-foreground">{label}</p></div>;
+}
+
+function PreviewPanel({ resource }: { resource: any }) {
+  const fileUrl = resource.fileUrl || resource.file?.url;
+  const fileType = String(resource.fileType || resource.file?.contentType || "").toLowerCase();
+  const extension = String(resource.fileExtension || "").toLowerCase();
+  const Icon = iconFor(resource);
+
+  return (
+    <Card className="overflow-hidden border-border/60 shadow-sm">
+      <CardContent className="p-0">
+        <div className="border-b px-6 py-4">
+          <h2 className="text-xl font-black">Preview</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Preview is shown when the file type is safe for browser viewing. Download remains a separate tracked action.</p>
+        </div>
+        {fileUrl && fileType.includes("pdf") ? (
+          <iframe title={resource.title} src={fileUrl} className="h-[560px] w-full bg-muted/20" />
+        ) : fileUrl && fileType.includes("image") ? (
+          <div className="flex min-h-96 items-center justify-center bg-muted/20 p-4">
+            <img src={fileUrl} alt={resource.title} className="max-h-[620px] max-w-full rounded-2xl object-contain shadow-sm" />
+          </div>
+        ) : fileUrl && fileType.includes("audio") ? (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-4 bg-muted/20 p-8">
+            <Icon className="h-14 w-14 text-primary" />
+            <audio controls className="w-full max-w-xl" src={fileUrl} />
+          </div>
+        ) : fileUrl && fileType.includes("video") ? (
+          <div className="bg-black p-2">
+            <video controls className="mx-auto max-h-[620px] w-full rounded-xl" src={fileUrl} />
+          </div>
+        ) : (
+          <div className="flex min-h-72 flex-col items-center justify-center bg-muted/20 p-8 text-center">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-primary/10 text-primary">
+              <Icon className="h-10 w-10" />
+            </div>
+            <h3 className="text-lg font-black">{labelType(extension || resource.fileType || "File")} preview is not available</h3>
+            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Office documents, archives, and some media files should be downloaded to view in the appropriate app.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function displayCourse(resource: any) {

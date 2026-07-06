@@ -233,7 +233,8 @@ function buildResourceKeywords(resource: Record<string, any>) {
 function matchesResourceFilters(resource: any, query: Request["query"], userRole?: string) {
   const isAdmin = isAdminRoleValue(userRole);
   const status = typeof query.status === "string" ? query.status : "";
-  if (isAdmin && status && status !== "all" && resource.status !== status) return false;
+  const normalizedStatus = status === "needs_changes" ? "changes_requested" : status;
+  if (isAdmin && normalizedStatus && normalizedStatus !== "all" && resource.status !== normalizedStatus) return false;
   if (!isAdmin && resource.status !== "approved") return false;
 
   const filters = [
@@ -420,18 +421,32 @@ export async function registerRoutes(
   );
 
   app.get(
-    "/api/resources",
+    "/api/resources/public",
     asyncRoute(async (req) => {
-      const user = await optionalCurrentUser(req);
-      const isAdmin = isAdminRoleValue(user?.role);
-      let query: FirebaseFirestore.Query = db.collection("resources");
-      if (!isAdmin) query = query.where("status", "==", "approved");
+      const query = db.collection("resources").where("status", "==", "approved");
       const snap = await query.limit(250).get();
       const resources = snap.docs
         .map((doc) => normalizePublicResource(doc.id, doc.data()))
-        .filter((resource) => matchesResourceFilters(resource, req.query, user?.role))
+        .filter((resource) => matchesResourceFilters(resource, req.query))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       return resources;
+    }, "/api/resources/public"),
+  );
+
+  app.get(
+    "/api/resources/mine",
+    requireAuth,
+    asyncRoute(async (req) => storage.listResourcesByUploader(currentUser(req).uid), "/api/resources/mine"),
+  );
+
+  app.get(
+    "/api/resources",
+    asyncRoute(async (req) => {
+      const snap = await db.collection("resources").where("status", "==", "approved").limit(250).get();
+      return snap.docs
+        .map((doc) => normalizePublicResource(doc.id, doc.data()))
+        .filter((resource) => matchesResourceFilters(resource, req.query))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, "/api/resources"),
   );
 

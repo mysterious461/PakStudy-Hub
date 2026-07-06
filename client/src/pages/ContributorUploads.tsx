@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -20,6 +21,7 @@ const statusStyles: Record<string, string> = {
 
 export default function ContributorUploads() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [uploads, setUploads] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -34,7 +36,7 @@ export default function ContributorUploads() {
 
     const loadUploads = async () => {
       try {
-        const response = await apiRequest("GET", "/api/contributor/resources");
+        const response = await apiRequest("GET", "/api/resources/mine");
         setUploads(await response.json());
       } catch {
         setHasError(true);
@@ -45,6 +47,17 @@ export default function ContributorUploads() {
 
     void loadUploads();
   }, [setLocation]);
+
+  const handleDownload = async (resource: any) => {
+    try {
+      const response = await apiRequest("POST", `/api/resources/${resource.id}/download`);
+      const payload = await response.json();
+      setUploads((current) => current.map((item) => item.id === resource.id ? { ...item, downloads: Number(item.downloads || 0) + 1 } : item));
+      window.open(payload.fileUrl || resource.fileUrl || resource.file?.url, "_blank");
+    } catch {
+      toast({ title: "Download blocked", description: "Could not verify access to this resource.", variant: "destructive" });
+    }
+  };
 
   const filteredUploads = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -130,7 +143,7 @@ export default function ContributorUploads() {
               </div>
               <div className="divide-y divide-border/60">
                 {filteredUploads.map((resource) => (
-                  <ResourceRow key={resource.id} resource={resource} />
+                  <ResourceRow key={resource.id} resource={resource} onView={() => setLocation(`/resources/${resource.id}`)} onDownload={() => handleDownload(resource)} />
                 ))}
               </div>
             </Card>
@@ -176,10 +189,7 @@ export default function ContributorUploads() {
   );
 }
 
-function ResourceRow({ resource }: { resource: any }) {
-  const fileUrl = resource.fileUrl || resource.file?.url;
-  const openFile = () => fileUrl && window.open(fileUrl, "_blank");
-
+function ResourceRow({ resource, onView, onDownload }: { resource: any; onView: () => void; onDownload: () => void }) {
   return (
     <div className="grid gap-3 p-4 lg:grid-cols-[1.6fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.7fr_0.7fr_112px] lg:items-center">
       <div className="flex min-w-0 items-center gap-3">
@@ -206,10 +216,10 @@ function ResourceRow({ resource }: { resource: any }) {
         <div>{Number(resource.views || 0)} views</div>
       </div>
       <div className="flex flex-wrap gap-2 lg:justify-end">
-        <Button variant="outline" size="icon" className="rounded-xl" onClick={openFile} title="View">
+        <Button variant="outline" size="icon" className="rounded-xl" onClick={onView} title="View Details">
           <ExternalLink className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="icon" className="rounded-xl" onClick={openFile} title="Download">
+        <Button variant="outline" size="icon" className="rounded-xl" onClick={onDownload} title="Download">
           <Download className="h-4 w-4" />
         </Button>
         <DropdownMenu>

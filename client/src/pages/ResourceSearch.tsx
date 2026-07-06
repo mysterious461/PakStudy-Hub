@@ -19,7 +19,7 @@ const emptyFilters = {
   resourceType: "",
   year: "",
   language: "",
-  status: "approved",
+  status: "all",
 };
 
 export default function ResourceSearch() {
@@ -78,11 +78,13 @@ export default function ResourceSearch() {
       });
       const user = auth.currentUser;
       const token = user ? await user.getIdToken().catch(() => "") : "";
-      const response = await fetch(`/api/resources?${params.toString()}`, {
+      const endpoint = isAdmin ? "/api/admin/resources" : "/api/resources/public";
+      const response = await fetch(`${endpoint}?${params.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (!response.ok) throw new Error("Could not load resources");
-      setResources(await response.json());
+      const payload = await response.json();
+      setResources(isAdmin ? filterResourcesLocally(payload, search, filters) : payload);
     } catch {
       setHasError(true);
       setResources([]);
@@ -210,6 +212,46 @@ function State({ title, text }: { title: string; text: string }) {
 
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort();
+}
+
+function filterResourcesLocally(resources: any[], search: string, filters: typeof emptyFilters) {
+  const query = search.trim().toLowerCase();
+  return resources.filter((resource) => {
+    const status = filters.status === "needs_changes" ? "changes_requested" : filters.status;
+    if (status && status !== "all" && resource.status !== status) return false;
+    const pairs = [
+      [filters.university, resource.university],
+      [filters.faculty, resource.faculty || resource.department],
+      [filters.degree, resource.degree],
+      [filters.semester, resource.semester],
+      [filters.courseCode, resource.courseCode],
+      [filters.courseTitle, resource.courseTitle],
+      [filters.resourceType, resource.resourceCategory || resource.resourceType],
+      [filters.year, String(resource.year || "")],
+      [filters.language, resource.language],
+    ];
+    if (pairs.some(([expected, actual]) => expected && !String(actual || "").toLowerCase().includes(String(expected).toLowerCase()))) return false;
+    if (!query) return true;
+    const haystack = [
+      resource.title,
+      resource.courseCode,
+      resource.courseTitle,
+      resource.course,
+      resource.subject,
+      resource.university,
+      resource.faculty,
+      resource.department,
+      resource.degree,
+      resource.semester,
+      resource.resourceCategory,
+      resource.resourceType,
+      resource.year,
+      resource.language,
+      resource.uploadedByName,
+      ...(resource.tags || []),
+    ].join(" ").toLowerCase();
+    return query.split(/\s+/).every((term) => haystack.includes(term));
+  });
 }
 
 function displayCourse(resource: any) {
