@@ -126,45 +126,45 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950 text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => goTo("/contribute")}>
+        <div className="mx-auto grid min-h-[76px] max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-6 lg:grid-cols-[minmax(230px,260px)_minmax(0,1fr)_auto] xl:grid-cols-[260px_minmax(0,1fr)_auto]">
+          <button className="flex min-w-0 items-center gap-3 text-left lg:min-w-[230px] lg:shrink-0 xl:min-w-[260px]" onClick={() => goTo("/contribute")}>
             <div className="h-11 w-11 shrink-0 rounded-2xl border border-border/50 bg-white p-1.5 shadow-sm">
               <img src={logoImage} alt="PakStudy Hub" className="h-full w-full object-contain" />
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-base font-black leading-tight">PakStudy Hub</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Contributor Portal</p>
+            <div className="min-w-0 lg:min-w-[168px]">
+              <p className="whitespace-nowrap text-base font-black leading-tight">PakStudy Hub</p>
+              <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-primary">Contributor Portal</p>
             </div>
           </button>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden min-w-0 items-center justify-center gap-1 lg:flex xl:gap-2">
             {navItems.map((item) => (
-              <NavButton key={item.label} icon={item.icon} label={item.label} onClick={() => goTo(item.path)} />
+              <NavButton key={item.label} icon={item.icon} label={item.label} active={isActiveRoute(location, item.path)} onClick={() => goTo(item.path)} />
             ))}
-            <AdminNavSlot visible={isAdmin} label="Admin" onClick={() => goTo("/admin")} />
-            <AdminNavSlot visible={isAdmin} label="Review" onClick={() => goTo("/admin/resources/review")} />
+            <AdminNavSlot visible={isAdmin} active={isActiveRoute(location, "/admin")} label="Admin" onClick={() => goTo("/admin")} />
+            <AdminNavSlot visible={isAdmin} active={isActiveRoute(location, "/admin/resources/review")} label="Review" onClick={() => goTo("/admin/resources/review")} />
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             {hasKnownSession ? (
-              <Button variant="outline" className="hidden rounded-2xl font-bold sm:inline-flex" onClick={handleSignOut}>
+              <Button variant="outline" className="hidden h-10 shrink-0 rounded-2xl px-4 font-bold lg:inline-flex" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </Button>
             ) : (
-              <Button className="hidden rounded-2xl font-bold sm:inline-flex" onClick={() => goTo("/auth?returnTo=/profile")}>
+              <Button className="hidden h-10 shrink-0 rounded-2xl px-4 font-bold lg:inline-flex" onClick={() => goTo("/auth?returnTo=/profile")}>
                 <LogIn className="mr-2 h-4 w-4" />
                 Sign In / Sign Up
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="rounded-2xl md:hidden" onClick={() => setMenuOpen((open) => !open)}>
+            <Button variant="ghost" size="icon" className="rounded-2xl lg:hidden" onClick={() => setMenuOpen((open) => !open)}>
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
 
         {menuOpen && (
-          <div className="border-t border-border/60 bg-background px-4 py-3 md:hidden">
+          <div className="border-t border-border/60 bg-background px-4 py-3 lg:hidden">
             <div className="mx-auto grid max-w-7xl gap-2">
               {navItems.map((item) => (
                 <MobileNavButton key={item.label} icon={item.icon} label={item.label} onClick={() => goTo(item.path)} />
@@ -224,25 +224,32 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
 
 export const ContributorPortalShell = ContributorPortalLayout;
 
-function NavButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
+function isActiveRoute(location: string, path: string) {
+  if (path === "/contribute") return location === "/" || location === "/contribute";
+  if (path === "/admin") return location === "/admin";
+  return location === path || location.startsWith(`${path}/`);
+}
+
+function NavButton({ icon: Icon, label, active, onClick }: { icon: any; label: string; active?: boolean; onClick: () => void }) {
   return (
-    <Button variant="ghost" className="rounded-2xl font-semibold" onClick={onClick}>
-      <Icon className="mr-2 h-4 w-4" />
+    <Button variant="ghost" className={`h-10 shrink-0 rounded-2xl px-3 font-semibold xl:px-4 ${active ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : ""}`} onClick={onClick} aria-current={active ? "page" : undefined}>
+      <Icon className="mr-2 h-4 w-4 shrink-0" />
       {label}
     </Button>
   );
 }
 
-function AdminNavSlot({ visible, label, onClick }: { visible: boolean; label: string; onClick: () => void }) {
+function AdminNavSlot({ visible, active, label, onClick }: { visible: boolean; active?: boolean; label: string; onClick: () => void }) {
   return (
     <Button
       variant="ghost"
-      className={`min-w-[92px] rounded-2xl font-semibold ${visible ? "" : "invisible pointer-events-none"}`}
+      className={`h-10 min-w-[92px] shrink-0 rounded-2xl px-3 font-semibold xl:px-4 ${active ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : ""} ${visible ? "" : "invisible pointer-events-none"}`}
       onClick={onClick}
       aria-hidden={!visible}
+      aria-current={visible && active ? "page" : undefined}
       tabIndex={visible ? 0 : -1}
     >
-      <ShieldCheck className="mr-2 h-4 w-4" />
+      <ShieldCheck className="mr-2 h-4 w-4 shrink-0" />
       {label}
     </Button>
   );
