@@ -42,12 +42,8 @@ function Router() {
     location === "/admin/resources/review" ||
     location.startsWith("/contributors");
 
-  if (location.startsWith("/auth?")) {
-    return (
-      <MobileShell>
-        <Auth />
-      </MobileShell>
-    );
+  if (location === "/auth" || location.startsWith("/auth?")) {
+    return <Auth />;
   }
 
   if (isContributorPortal) {
