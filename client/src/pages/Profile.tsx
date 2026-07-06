@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
@@ -131,8 +130,7 @@ export default function Profile() {
   };
 
   return (
-    <ContributorPortalShell>
-      <div className="min-h-[calc(100vh-170px)] bg-muted/10">
+    <div className="min-h-[calc(100vh-170px)] bg-muted/10">
         <div className="border-b bg-background shadow-sm">
           <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
             <Button variant="outline" className="rounded-2xl font-bold" onClick={() => setLocation("/contribute")}>
@@ -261,8 +259,7 @@ export default function Profile() {
             </div>
           )}
         </div>
-      </div>
-    </ContributorPortalShell>
+    </div>
   );
 }
 

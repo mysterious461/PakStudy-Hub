@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 
@@ -140,7 +139,6 @@ export default function ContributorUpload() {
   };
 
   return (
-    <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] bg-muted/10">
       <div className="border-b bg-background shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
@@ -256,7 +254,6 @@ export default function ContributorUpload() {
         )}
       </div>
     </div>
-    </ContributorPortalShell>
   );
 }
 

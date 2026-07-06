@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -44,7 +43,6 @@ export default function ContributorDashboard() {
   }, [user, setLocation]);
 
   return (
-    <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] flex flex-col bg-muted/10 overflow-hidden">
       <div className="border-b bg-background shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
@@ -119,7 +117,6 @@ export default function ContributorDashboard() {
         )}
       </div>
     </div>
-    </ContributorPortalShell>
   );
 }
 

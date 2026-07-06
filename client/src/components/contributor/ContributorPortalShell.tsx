@@ -11,27 +11,81 @@ type ContributorPortalShellProps = {
   children: React.ReactNode;
 };
 
+type PortalHeaderCache = {
+  uid: string;
+  email: string;
+  role: "Student" | "Admin" | "Moderator";
+};
+
+const HEADER_CACHE_KEY = "pakstudy.portal.header";
+
+function readHeaderCache(): PortalHeaderCache | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(HEADER_CACHE_KEY) || "null");
+    if (!parsed?.uid) return null;
+    return {
+      uid: parsed.uid,
+      email: parsed.email || "",
+      role: parsed.role === "Admin" || parsed.role === "Moderator" ? parsed.role : "Student",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeHeaderCache(cache: PortalHeaderCache | null) {
+  if (typeof window === "undefined") return;
+  if (!cache) {
+    window.localStorage.removeItem(HEADER_CACHE_KEY);
+    return;
+  }
+  window.localStorage.setItem(HEADER_CACHE_KEY, JSON.stringify(cache));
+}
+
 export function ContributorPortalLayout({ children }: ContributorPortalShellProps) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const [cachedHeader, setCachedHeader] = useState<PortalHeaderCache | null>(() => readHeaderCache());
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [role, setRole] = useState("Student");
+  const [role, setRole] = useState<PortalHeaderCache["role"]>(() => readHeaderCache()?.role || "Student");
+  const [authResolved, setAuthResolved] = useState(Boolean(auth.currentUser));
   const [menuOpen, setMenuOpen] = useState(false);
+  const [routeSettling, setRouteSettling] = useState(false);
+  const hasKnownSession = Boolean(user || (!authResolved && cachedHeader));
   const isAdmin = role === "Admin" || role === "Moderator";
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setRole("Student");
+      setAuthResolved(true);
 
       if (currentUser) {
+        const latestCache = readHeaderCache();
+        if (latestCache?.uid === currentUser.uid) {
+          setCachedHeader(latestCache);
+          setRole(latestCache.role);
+        }
+
         void apiRequest("GET", "/api/user/profile")
           .then((response) => response.json())
           .then((profile) => {
-            setRole(profile?.role === "Admin" || profile?.role === "Moderator" ? profile.role : "Student");
+            const nextRole = profile?.role === "Admin" || profile?.role === "Moderator" ? profile.role : "Student";
+            const nextCache = {
+              uid: currentUser.uid,
+              email: profile?.email || currentUser.email || "",
+              role: nextRole,
+            };
+            setRole(nextRole);
+            setCachedHeader(nextCache);
+            writeHeaderCache(nextCache);
           })
           .catch((error) => {
             if (import.meta.env.DEV) console.warn("Portal profile role fetch failed:", error);
           });
+      } else {
+        setCachedHeader(null);
+        setRole("Student");
+        writeHeaderCache(null);
       }
     });
 
@@ -40,12 +94,20 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
     };
   }, []);
 
+  useEffect(() => {
+    setRouteSettling(true);
+    const timeout = window.setTimeout(() => setRouteSettling(false), 180);
+    return () => window.clearTimeout(timeout);
+  }, [location]);
+
   const goTo = (path: string) => {
     setMenuOpen(false);
     setLocation(path);
   };
 
   const handleSignOut = async () => {
+    writeHeaderCache(null);
+    setCachedHeader(null);
     await signOut(auth);
     setRole("Student");
     setMenuOpen(false);
@@ -54,14 +116,10 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
 
   const navItems = [
     { icon: Home, label: "Home", path: "/contribute" },
-    { icon: BookOpen, label: "Contribute", path: user ? "/contributors/upload" : "/auth?returnTo=/contributors/upload" },
-    { icon: Files, label: "My Uploads", path: user ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads" },
-    { icon: LayoutDashboard, label: "Dashboard", path: user ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard" },
-    { icon: User, label: "Profile", path: user ? "/profile" : "/auth?returnTo=/profile" },
-    ...(isAdmin ? [
-      { icon: ShieldCheck, label: "Admin", path: "/admin" },
-      { icon: ShieldCheck, label: "Review", path: "/admin/resources/review" },
-    ] : []),
+    { icon: BookOpen, label: "Contribute", path: hasKnownSession ? "/contributors/upload" : "/auth?returnTo=/contributors/upload" },
+    { icon: Files, label: "My Uploads", path: hasKnownSession ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads" },
+    { icon: LayoutDashboard, label: "Dashboard", path: hasKnownSession ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard" },
+    { icon: User, label: "Profile", path: hasKnownSession ? "/profile" : "/auth?returnTo=/profile" },
   ];
 
   return (
@@ -82,10 +140,12 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
             {navItems.map((item) => (
               <NavButton key={item.label} icon={item.icon} label={item.label} onClick={() => goTo(item.path)} />
             ))}
+            <AdminNavSlot visible={isAdmin} label="Admin" onClick={() => goTo("/admin")} />
+            <AdminNavSlot visible={isAdmin} label="Review" onClick={() => goTo("/admin/resources/review")} />
           </nav>
 
           <div className="flex items-center gap-2">
-            {user ? (
+            {hasKnownSession ? (
               <Button variant="outline" className="hidden rounded-2xl font-bold sm:inline-flex" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
@@ -108,7 +168,9 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
               {navItems.map((item) => (
                 <MobileNavButton key={item.label} icon={item.icon} label={item.label} onClick={() => goTo(item.path)} />
               ))}
-              {user ? (
+              {isAdmin && <MobileNavButton icon={ShieldCheck} label="Admin" onClick={() => goTo("/admin")} />}
+              {isAdmin && <MobileNavButton icon={ShieldCheck} label="Review" onClick={() => goTo("/admin/resources/review")} />}
+              {hasKnownSession ? (
                 <MobileNavButton icon={LogOut} label="Sign Out" onClick={handleSignOut} />
               ) : (
                 <MobileNavButton icon={LogIn} label="Sign In / Sign Up" onClick={() => goTo("/auth?returnTo=/profile")} />
@@ -117,6 +179,10 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
           </div>
         )}
       </header>
+
+      <div className="h-1 bg-background">
+        <div className={`h-full bg-primary transition-all duration-200 ${routeSettling ? "w-full opacity-70" : "w-0 opacity-0"}`} />
+      </div>
 
       <main>{children}</main>
 
@@ -139,6 +205,21 @@ function NavButton({ icon: Icon, label, onClick }: { icon: any; label: string; o
   return (
     <Button variant="ghost" className="rounded-2xl font-semibold" onClick={onClick}>
       <Icon className="mr-2 h-4 w-4" />
+      {label}
+    </Button>
+  );
+}
+
+function AdminNavSlot({ visible, label, onClick }: { visible: boolean; label: string; onClick: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      className={`min-w-[92px] rounded-2xl font-semibold ${visible ? "" : "invisible pointer-events-none"}`}
+      onClick={onClick}
+      aria-hidden={!visible}
+      tabIndex={visible ? 0 : -1}
+    >
+      <ShieldCheck className="mr-2 h-4 w-4" />
       {label}
     </Button>
   );

@@ -17,7 +17,6 @@ import {
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { auth } from "@/lib/firebase";
 
 const stats = [
@@ -49,8 +48,7 @@ export default function ContributorLanding() {
   const uploadTarget = auth.currentUser ? "/contributors/upload" : "/auth?returnTo=/contributors/upload";
 
   return (
-    <ContributorPortalShell>
-      <div className="bg-[linear-gradient(180deg,rgba(22,163,74,0.08),rgba(255,255,255,0)_38%)]">
+    <div className="bg-[linear-gradient(180deg,rgba(22,163,74,0.08),rgba(255,255,255,0)_38%)]">
         <section className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:py-20">
           <div>
             <div className="mb-5 inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-primary">
@@ -141,7 +139,6 @@ export default function ContributorLanding() {
             </CardContent>
           </Card>
         </section>
-      </div>
-    </ContributorPortalShell>
+    </div>
   );
 }

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ContributorPortalShell } from "@/components/contributor/ContributorPortalShell";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -66,7 +65,6 @@ export default function AdminResourceReview() {
   };
 
   return (
-    <ContributorPortalShell>
     <div className="min-h-[calc(100vh-170px)] bg-muted/10">
       <div className="border-b bg-background shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-5 sm:px-6">
@@ -162,7 +160,6 @@ export default function AdminResourceReview() {
         </DialogContent>
       </Dialog>
     </div>
-    </ContributorPortalShell>
   );
 }
 

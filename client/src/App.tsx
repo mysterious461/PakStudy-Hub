@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileShell } from "@/components/layout/MobileShell";
+import { ContributorPortalLayout } from "@/components/contributor/ContributorPortalShell";
 import NotFound from "@/pages/not-found";
 import Onboarding from "@/pages/Onboarding";
 import Auth from "@/pages/Auth";
@@ -33,7 +34,13 @@ import ContributorUploads from "@/pages/ContributorUploads";
 
 function Router() {
   const [location] = useLocation();
-  const isContributorPortal = location === "/" || location === "/contribute" || location === "/profile" || location.startsWith("/contributors");
+  const isContributorPortal =
+    location === "/" ||
+    location === "/contribute" ||
+    location === "/profile" ||
+    location === "/admin" ||
+    location === "/admin/resources/review" ||
+    location.startsWith("/contributors");
 
   if (location.startsWith("/auth?")) {
     return (
@@ -45,16 +52,20 @@ function Router() {
 
   if (isContributorPortal) {
     return (
-      <Switch>
-        <Route path="/" component={ContributorLanding} />
-        <Route path="/contribute" component={ContributorLanding} />
-        <Route path="/contributors" component={ContributorLanding} />
-        <Route path="/contributors/dashboard" component={ContributorDashboard} />
-        <Route path="/contributors/upload" component={ContributorUpload} />
-        <Route path="/contributors/uploads" component={ContributorUploads} />
-        <Route path="/profile" component={Profile} />
-        <Route component={NotFound} />
-      </Switch>
+      <ContributorPortalLayout>
+        <Switch>
+          <Route path="/" component={ContributorLanding} />
+          <Route path="/contribute" component={ContributorLanding} />
+          <Route path="/contributors" component={ContributorLanding} />
+          <Route path="/contributors/dashboard" component={ContributorDashboard} />
+          <Route path="/contributors/upload" component={ContributorUpload} />
+          <Route path="/contributors/uploads" component={ContributorUploads} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/admin/resources/review" component={AdminResourceReview} />
+          <Route component={NotFound} />
+        </Switch>
+      </ContributorPortalLayout>
     );
   }
 
