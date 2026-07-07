@@ -30,6 +30,7 @@ export default function AdminResources() {
   const [canAccess, setCanAccess] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [reviewTarget, setReviewTarget] = useState<any>(null);
   const [reviewAction, setReviewAction] = useState<ReviewAction>("rejected");
   const [reviewNote, setReviewNote] = useState("");
@@ -60,6 +61,8 @@ export default function AdminResources() {
     return resources.filter((resource) => {
       const resourceStatus = resource.status === "needs_changes" ? "changes_requested" : resource.status;
       if (status !== "all" && resourceStatus !== status) return false;
+      if (sourceFilter === "admin_curated" && !resource.isAdminCurated) return false;
+      if (sourceFilter === "contributor_submitted" && resource.isAdminCurated) return false;
       if (!query) return true;
       return [
         resource.title,
@@ -76,7 +79,7 @@ export default function AdminResources() {
         resource.resourceType,
       ].join(" ").toLowerCase().includes(query);
     });
-  }, [resources, search, status]);
+  }, [resources, search, status, sourceFilter]);
 
   const submitReview = async (resource: any, action: ReviewAction, note = "") => {
     if (isOwnUpload(resource, currentUserId)) {
@@ -129,7 +132,7 @@ export default function AdminResources() {
 
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
         <Card className="border-border/60 shadow-sm">
-          <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_220px]">
+          <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_220px_220px]">
             <div className="relative">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
               <Input className="h-12 rounded-2xl pl-12" placeholder="Search title, uploader, university, course..." value={search} onChange={(event) => setSearch(event.target.value)} />
@@ -144,6 +147,16 @@ export default function AdminResources() {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
                 <SelectItem value="changes_requested">Needs Changes</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="h-12 rounded-2xl">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                <SelectItem value="admin_curated">Admin Curated</SelectItem>
+                <SelectItem value="contributor_submitted">Contributor Submitted</SelectItem>
               </SelectContent>
             </Select>
           </CardContent>
@@ -172,6 +185,7 @@ export default function AdminResources() {
                   <DataCell label="Title" value={resource.title} strong helper={formatDate(resource.createdAt)} />
                   <div>
                     <DataCell label="Uploader" value={resource.uploadedByName || resource.uploaderEmail || "Contributor"} />
+                    {resource.isAdminCurated && <Badge variant="outline" className="mt-2 rounded-full border-blue-200 bg-blue-50 text-blue-700">Admin Curated</Badge>}
                     {isOwnUpload(resource, currentUserId) && <Badge variant="outline" className="mt-2 rounded-full border-blue-200 bg-blue-50 text-blue-700">Own upload — review disabled</Badge>}
                   </div>
                   <DataCell label="University" value={resource.university} />

@@ -121,6 +121,10 @@ function parseContributorUploadBody(body: Request["body"]) {
   });
 }
 
+function parseBooleanField(value: unknown) {
+  return value === true || value === "true" || value === "1" || value === "yes";
+}
+
 function detectFileKind(file: Express.Multer.File) {
   const extension = extensionFor(file.originalname);
   const office = {
@@ -160,6 +164,9 @@ function isAdminRoleValue(role?: string) {
 }
 
 function normalizePublicResource(id: string, data: Record<string, any>) {
+  const isAdminCurated = Boolean(data.isAdminCurated);
+  const publicSourceLabel = data.sourceLabel || "PakStudy Hub Team";
+  const showAdminNamePublicly = Boolean(data.showAdminNamePublicly);
   const file = data.file ?? {
     path: data.filePath ?? "",
     url: data.fileUrl ?? "",
@@ -187,10 +194,16 @@ function normalizePublicResource(id: string, data: Record<string, any>) {
     tags: data.tags ?? [],
     status: data.status ?? data.reviewStatus ?? "pending",
     visibility: data.visibility ?? "private",
-    uploadedBy: data.uploadedBy ?? data.uploaderId ?? "",
-    uploadedByName: data.uploadedByName ?? data.uploaderName ?? data.uploaderNameSource ?? "Contributor",
-    uploaderId: data.uploaderId ?? data.uploadedBy ?? "",
-    uploaderEmail: data.uploaderEmail ?? "",
+    uploadedBy: isAdminCurated ? "" : data.uploadedBy ?? data.uploaderId ?? "",
+    uploadedByName: isAdminCurated && !showAdminNamePublicly ? publicSourceLabel : data.uploadedByName ?? data.uploaderName ?? data.uploaderNameSource ?? "Contributor",
+    uploaderId: isAdminCurated ? "" : data.uploaderId ?? data.uploadedBy ?? "",
+    uploaderEmail: isAdminCurated ? "" : data.uploaderEmail ?? "",
+    isAdminCurated,
+    sourceType: data.sourceType ?? (isAdminCurated ? "admin_curated" : "contributor_submitted"),
+    sourceLabel: publicSourceLabel,
+    sourceNote: data.sourceNote ?? "",
+    showAdminNamePublicly,
+    approvedAt: data.approvedAt ? toDate(data.approvedAt).toISOString() : undefined,
     file,
     fileUrl: data.fileUrl ?? file.url,
     fileName: data.fileName ?? file.originalName,
@@ -884,6 +897,19 @@ export async function registerRoutes(
       const user = currentUser(req);
       if (!req.file) throw Object.assign(new Error("Resource file is required"), { status: 400 });
       const fileKind = validateContributorFile(req.file);
+      const adminCurated = parseBooleanField(req.body.adminCurated);
+      const showAdminNamePublicly = parseBooleanField(req.body.showAdminNamePublicly);
+      const sourceLabel = typeof req.body.sourceLabel === "string" && req.body.sourceLabel.trim()
+        ? req.body.sourceLabel.trim().slice(0, 120)
+        : "PakStudy Hub Team";
+      const sourceNote = typeof req.body.sourceNote === "string" ? req.body.sourceNote.trim().slice(0, 1000) : "";
+
+      if (adminCurated && user.role !== "Admin") {
+        throw Object.assign(new Error("Only Admin users can upload admin curated resources"), { status: 403 });
+      }
+      if (adminCurated && !sourceNote) {
+        throw Object.assign(new Error("Permission/source note is required for admin curated resources"), { status: 400 });
+      }
 
       const input = parseContributorUploadBody(req.body);
       const file = await saveUploadedFile(user.uid, req.file, "resources", [
@@ -902,12 +928,18 @@ export async function registerRoutes(
         uploaderName: user.name,
         fileCategory: fileKind.category,
         fileExtension: fileKind.extension,
+        isAdminCurated: adminCurated,
+        curatedBy: adminCurated ? user.uid : undefined,
+        sourceLabel: adminCurated ? sourceLabel : undefined,
+        sourceNote: adminCurated ? sourceNote : undefined,
+        showAdminNamePublicly: adminCurated ? showAdminNamePublicly : undefined,
       });
       trackEvent("contributor_resource_submitted", user.uid, {
         resourceId: resource.id,
         resourceType: resource.resourceType,
         contentType: file.contentType,
         size: file.size,
+        adminCurated,
       });
       return resource;
     }, "/api/contributor/resources"),

@@ -35,6 +35,10 @@ const initialForm = {
   edition: "",
   publisher: "",
   hasPermission: false,
+  adminCurated: false,
+  sourceLabel: "PakStudy Hub Team",
+  sourceNote: "",
+  showAdminNamePublicly: false,
 };
 
 type UploadForm = typeof initialForm;
@@ -106,10 +110,24 @@ export default function ContributorUpload() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeFileName, setActiveFileName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [submittedCurated, setSubmittedCurated] = useState(false);
 
   useEffect(() => {
     if (!auth.currentUser) setLocation("/auth?returnTo=/contributors/upload");
   }, [setLocation]);
+
+  useEffect(() => {
+    const loadRole = async () => {
+      const token = await auth.currentUser?.getIdToken().catch(() => "");
+      if (!token) return;
+      const response = await fetch("/api/user/profile", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+      if (!response?.ok) return;
+      const profile = await response.json();
+      setIsAdmin(profile.role === "Admin");
+    };
+    void loadRole();
+  }, []);
 
   useEffect(() => {
     const first = files[0];
@@ -170,6 +188,14 @@ export default function ContributorUpload() {
       toast({ title: "Permission required", description: "Please confirm you can share this material.", variant: "destructive" });
       return;
     }
+    if (form.adminCurated && !isAdmin) {
+      toast({ title: "Admin only", description: "Only Admin users can upload admin curated resources.", variant: "destructive" });
+      return;
+    }
+    if (form.adminCurated && !form.sourceNote.trim()) {
+      toast({ title: "Source note required", description: "Add a permission/source note for admin curated resources.", variant: "destructive" });
+      return;
+    }
 
     setIsSubmitting(true);
     setProgress(0);
@@ -191,8 +217,14 @@ export default function ContributorUpload() {
       setForm(initialForm);
       setFiles([]);
       formElement.reset();
+      setSubmittedCurated(form.adminCurated);
       setIsSubmitted(true);
-      toast({ title: "Submitted for review", description: `${files.length} resource${files.length === 1 ? "" : "s"} submitted for admin approval.` });
+      toast({
+        title: form.adminCurated ? "Published as admin curated" : "Submitted for review",
+        description: form.adminCurated
+          ? `${files.length} resource${files.length === 1 ? "" : "s"} approved and published to the library.`
+          : `${files.length} resource${files.length === 1 ? "" : "s"} submitted for admin approval.`,
+      });
     } catch (error: any) {
       toast({ title: "Could not submit", description: error.message || "Please check your fields and try again.", variant: "destructive" });
     } finally {
@@ -224,10 +256,12 @@ export default function ContributorUpload() {
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
                 <CheckCircle className="h-8 w-8" />
               </div>
-              <h2 className="text-2xl font-black">Submitted for Review</h2>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">Your resource batch is now in the moderation queue. You can track status from My Uploads.</p>
+              <h2 className="text-2xl font-black">{submittedCurated ? "Published to Resources" : "Submitted for Review"}</h2>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
+                {submittedCurated ? "Your admin curated resource is approved and publicly available in the resource library." : "Your resource batch is now in the moderation queue. You can track status from My Uploads."}
+              </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <Button className="h-12 rounded-2xl font-bold" onClick={() => setLocation("/contributors/uploads")}>Go to My Uploads</Button>
+                <Button className="h-12 rounded-2xl font-bold" onClick={() => setLocation(submittedCurated ? "/resources" : "/contributors/uploads")}>{submittedCurated ? "Browse Resources" : "Go to My Uploads"}</Button>
                 <Button variant="outline" className="h-12 rounded-2xl font-bold" onClick={() => setIsSubmitted(false)}>Upload More</Button>
               </div>
             </CardContent>
@@ -279,6 +313,34 @@ export default function ContributorUpload() {
                   </div>
                 </CardContent>
               </Card>
+
+              {isAdmin && (
+                <Card className="border-border/60 shadow-sm">
+                  <CardContent className="space-y-4 p-5">
+                    <label className="flex cursor-pointer gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                      <Checkbox checked={form.adminCurated} onCheckedChange={(checked) => updateField("adminCurated", Boolean(checked))} />
+                      <span className="text-sm leading-relaxed">
+                        <strong>Upload as Admin Curated Resource</strong>
+                        <span className="mt-1 block text-muted-foreground">Publishes immediately as reviewed PakStudy Hub seed content. Normal uploads still go to pending review.</span>
+                      </span>
+                    </label>
+                    {form.adminCurated && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Source Label" helper="Shown publicly as the contributor/source"><Input value={form.sourceLabel} onChange={(event) => updateField("sourceLabel", event.target.value)} placeholder="PakStudy Hub Team" /></Field>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:mt-6">
+                          <Checkbox checked={form.showAdminNamePublicly} onCheckedChange={(checked) => updateField("showAdminNamePublicly", Boolean(checked))} />
+                          <span className="text-sm leading-relaxed">Show my admin name publicly</span>
+                        </label>
+                        <div className="sm:col-span-2">
+                          <Field label="Permission / Source Note" helper="Required for admin curated uploads">
+                            <Textarea className="min-h-24 resize-none" value={form.sourceNote} onChange={(event) => updateField("sourceNote", event.target.value)} placeholder="Example: Uploaded from department-approved public course material with permission for PakStudy Hub launch." required={form.adminCurated} />
+                          </Field>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="border-border/60 shadow-sm">
                 <CardContent className="space-y-4 p-5">

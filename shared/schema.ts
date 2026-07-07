@@ -275,6 +275,13 @@ export type AcademicResource = AcademicResourceMetadata & {
   publisher?: string;
   fileCategory?: string;
   fileExtension?: string;
+  isAdminCurated?: boolean;
+  curatedBy?: string;
+  approvedAt?: Date;
+  sourceType?: "admin_curated" | "contributor_submitted";
+  sourceLabel?: string;
+  sourceNote?: string;
+  showAdminNamePublicly?: boolean;
   previewStatus?: "pending" | "ready" | "unavailable";
   processingStatus?: "pending" | "queued" | "complete" | "failed";
   downloads?: number;

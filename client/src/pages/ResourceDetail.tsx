@@ -189,6 +189,7 @@ export default function ResourceDetail() {
           </Button>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="rounded-full">{labelType(resource.resourceCategory || resource.resourceType)}</Badge>
+            {resource.isAdminCurated && <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">Admin Curated</Badge>}
             <StatusBadge status={resource.status} />
             {resource.status === "approved" && <Badge variant="outline" className="rounded-full border-green-200 bg-green-50 text-green-700"><ShieldCheck className="mr-1 h-3 w-3" />Reviewed resource</Badge>}
           </div>
@@ -214,6 +215,11 @@ export default function ResourceDetail() {
             <CardContent className="p-6">
               <h2 className="text-xl font-black">Description</h2>
               <p className="mt-3 leading-8 text-muted-foreground">{resource.description || "No description provided."}</p>
+              {resource.isAdminCurated && resource.sourceNote && (
+                <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800">
+                  <strong>Source note:</strong> {resource.sourceNote}
+                </div>
+              )}
               <div className="mt-5 flex flex-wrap gap-2">
                 {(resource.tags || []).length ? (resource.tags || []).map((tag: string) => <Badge key={tag} variant="outline" className="rounded-full"><Tag className="mr-1 h-3 w-3" />{tag}</Badge>) : <span className="text-sm text-muted-foreground">No tags added yet.</span>}
               </div>
@@ -266,7 +272,7 @@ export default function ResourceDetail() {
                 <InfoRow label="File type" value={fileInfo.label} />
                 <InfoRow label="File size" value={formatSize(resource.fileSize || resource.file?.size || 0)} />
                 <InfoRow label="Upload date" value={formatDate(resource.createdAt)} />
-                <InfoRow label="Contributor" value={resource.uploadedByName || "Contributor"} />
+                <InfoRow label={resource.isAdminCurated ? "Source" : "Contributor"} value={resource.isAdminCurated ? resource.sourceLabel || "PakStudy Hub Team" : resource.uploadedByName || "Contributor"} />
                 <InfoRow label="Status" value={labelStatus(resource.status)} />
               </div>
               <div className="grid grid-cols-3 gap-3">

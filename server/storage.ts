@@ -64,7 +64,19 @@ export interface IStorage {
   getLeaderboard(): Promise<User[]>;
   createResource(input: AcademicResourceMetadata & { file: StoredFile; uploadedBy: string; uploadedByName: string }): Promise<AcademicResource>;
   listResources(filters?: { visibility?: string }): Promise<AcademicResource[]>;
-  createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string; fileCategory?: string; fileExtension?: string }): Promise<AcademicResource>;
+  createContributorResource(input: ContributorResourceMetadata & {
+    file: StoredFile;
+    uploaderId: string;
+    uploaderEmail?: string;
+    uploaderName: string;
+    fileCategory?: string;
+    fileExtension?: string;
+    isAdminCurated?: boolean;
+    curatedBy?: string;
+    sourceLabel?: string;
+    sourceNote?: string;
+    showAdminNamePublicly?: boolean;
+  }): Promise<AcademicResource>;
   listResourcesByUploader(uploaderId: string): Promise<AcademicResource[]>;
   getContributorStats(uploaderId: string): Promise<{ totalUploads: number; approvedUploads: number; pendingUploads: number; rejectedUploads: number; reputationPoints: number; badgeStatus: string }>;
   listPendingResources(): Promise<AcademicResource[]>;
@@ -219,6 +231,13 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
     fileSize: data.fileSize ?? file.size,
     fileCategory: data.fileCategory ?? "",
     fileExtension: data.fileExtension ?? "",
+    isAdminCurated: data.isAdminCurated ?? false,
+    curatedBy: data.curatedBy ?? undefined,
+    approvedAt: data.approvedAt ? toDate(data.approvedAt) : undefined,
+    sourceType: data.sourceType ?? "contributor_submitted",
+    sourceLabel: data.sourceLabel ?? "",
+    sourceNote: data.sourceNote ?? "",
+    showAdminNamePublicly: data.showAdminNamePublicly ?? false,
     previewStatus: data.previewStatus ?? "unavailable",
     processingStatus: data.processingStatus ?? "pending",
     downloads: data.downloads ?? 0,
@@ -632,8 +651,23 @@ export class FirestoreStorage implements IStorage {
     return sortByCreatedAtDesc(snap.docs.map((doc) => normalizeResource(doc.id, doc.data())));
   }
 
-  async createContributorResource(input: ContributorResourceMetadata & { file: StoredFile; uploaderId: string; uploaderEmail?: string; uploaderName: string; fileCategory?: string; fileExtension?: string }): Promise<AcademicResource> {
+  async createContributorResource(input: ContributorResourceMetadata & {
+    file: StoredFile;
+    uploaderId: string;
+    uploaderEmail?: string;
+    uploaderName: string;
+    fileCategory?: string;
+    fileExtension?: string;
+    isAdminCurated?: boolean;
+    curatedBy?: string;
+    sourceLabel?: string;
+    sourceNote?: string;
+    showAdminNamePublicly?: boolean;
+  }): Promise<AcademicResource> {
     const ref = db.collection("resources").doc();
+    const isAdminCurated = Boolean(input.isAdminCurated);
+    const sourceLabel = input.sourceLabel?.trim() || "PakStudy Hub Team";
+    const publicUploaderName = isAdminCurated && !input.showAdminNamePublicly ? sourceLabel : input.uploaderName;
     const data = {
       university: input.university,
       faculty: input.faculty,
@@ -655,13 +689,21 @@ export class FirestoreStorage implements IStorage {
       examSession: input.examSession ?? "",
       edition: input.edition ?? "",
       publisher: input.publisher ?? "",
-      visibility: "private",
-      uploaderNameSource: input.uploaderName,
+      visibility: isAdminCurated ? "public" : "private",
+      uploaderNameSource: isAdminCurated ? sourceLabel : input.uploaderName,
       permissionStatus: "permission_granted",
       hasPermission: input.hasPermission,
-      status: "pending",
-      reviewStatus: "pending",
+      status: isAdminCurated ? "approved" : "pending",
+      reviewStatus: isAdminCurated ? "approved" : "pending",
       rejectionReason: "",
+      isAdminCurated,
+      curatedBy: input.curatedBy ?? "",
+      reviewedBy: isAdminCurated ? input.curatedBy ?? input.uploaderId : "",
+      approvedAt: isAdminCurated ? FieldValue.serverTimestamp() : null,
+      sourceType: isAdminCurated ? "admin_curated" : "contributor_submitted",
+      sourceLabel,
+      sourceNote: input.sourceNote ?? "",
+      showAdminNamePublicly: input.showAdminNamePublicly ?? false,
       file: input.file,
       fileUrl: input.file.url,
       fileName: input.file.originalName,
@@ -680,7 +722,7 @@ export class FirestoreStorage implements IStorage {
       downloads: 0,
       views: 0,
       uploadedBy: input.uploaderId,
-      uploadedByName: input.uploaderName,
+      uploadedByName: publicUploaderName,
       uploaderId: input.uploaderId,
       uploaderEmail: input.uploaderEmail ?? null,
       createdAt: FieldValue.serverTimestamp(),

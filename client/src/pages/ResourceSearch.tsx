@@ -174,13 +174,16 @@ function ResourceCard({ resource, onView }: { resource: any; onView: () => void 
             <h2 className="line-clamp-2 font-black leading-snug">{resource.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{displayCourse(resource)}</p>
           </div>
-          <Badge variant="outline" className="rounded-full">{labelType(resource.resourceCategory || resource.resourceType)}</Badge>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Badge variant="outline" className="rounded-full">{labelType(resource.resourceCategory || resource.resourceType)}</Badge>
+            {resource.isAdminCurated && <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">Admin Curated</Badge>}
+          </div>
         </div>
         <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
           <span>{resource.university}</span>
           <span>{resource.degree}</span>
           <span>{resource.semester}</span>
-          <span>{resource.uploadedByName || "Contributor"}</span>
+          <span>{resource.isAdminCurated ? resource.sourceLabel || "PakStudy Hub Team" : resource.uploadedByName || "Contributor"}</span>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{resource.views || 0}</span>
