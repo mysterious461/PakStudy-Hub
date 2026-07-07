@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
 type ReviewAction = "approved" | "rejected" | "changes_requested";
+const SELF_REVIEW_MESSAGE = "You cannot review your own upload. Please ask another admin or moderator to review this resource.";
 
 export default function AdminResourceReview() {
   const [, setLocation] = useLocation();
@@ -21,10 +23,12 @@ export default function AdminResourceReview() {
   const [reviewAction, setReviewAction] = useState<ReviewAction>("rejected");
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || "");
 
   const loadResources = async () => {
     try {
       await apiRequest("GET", "/api/admin/stats");
+      setCurrentUserId(auth.currentUser?.uid || "");
       setCanAccess(true);
       const response = await apiRequest("GET", "/api/admin/resources/pending");
       setResources(await response.json());
@@ -40,6 +44,10 @@ export default function AdminResourceReview() {
   }, []);
 
   const submitReview = async (resource: any, action: ReviewAction, note = "") => {
+    if (isOwnUpload(resource, currentUserId)) {
+      toast({ title: "Review disabled", description: SELF_REVIEW_MESSAGE, variant: "destructive" });
+      return;
+    }
     setIsReviewing(true);
     try {
       const response = await apiRequest("PATCH", `/api/admin/resources/${resource.id}/review`, {
@@ -51,8 +59,8 @@ export default function AdminResourceReview() {
       setReviewTarget(null);
       setReviewNote("");
       toast({ title: "Review saved", description: `Resource marked as ${labelStatus(action)}.` });
-    } catch {
-      toast({ title: "Review not saved", description: "Please check permissions and try again.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Review not saved", description: isSelfReviewError(error) ? SELF_REVIEW_MESSAGE : "Please check permissions and try again.", variant: "destructive" });
     } finally {
       setIsReviewing(false);
     }
@@ -94,6 +102,9 @@ export default function AdminResourceReview() {
             {resources.map((resource) => (
               <Card key={resource.id} className="border-border/50 shadow-sm">
                 <CardContent className="p-5">
+                  {isOwnUpload(resource, currentUserId) && (
+                    <Badge variant="outline" className="mb-3 rounded-full border-blue-200 bg-blue-50 text-blue-700">Own upload — review disabled</Badge>
+                  )}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
                       <h2 className="font-bold text-base leading-snug">{resource.title}</h2>
@@ -117,15 +128,15 @@ export default function AdminResourceReview() {
                       View Details
                     </Button>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <Button className="rounded-xl" onClick={() => submitReview(resource, "approved")}>
+                      <Button className="rounded-xl" disabled={isOwnUpload(resource, currentUserId)} onClick={() => submitReview(resource, "approved")}>
                         <CheckCircle className="mr-2 w-4 h-4" />
                         Approve
                       </Button>
-                      <Button variant="outline" className="rounded-xl text-blue-700" onClick={() => openNoteDialog(resource, "changes_requested")}>
+                      <Button variant="outline" className="rounded-xl text-blue-700" disabled={isOwnUpload(resource, currentUserId)} onClick={() => openNoteDialog(resource, "changes_requested")}>
                         <MessageSquareWarning className="mr-2 w-4 h-4" />
                         Changes
                       </Button>
-                      <Button variant="outline" className="rounded-xl text-red-700" onClick={() => openNoteDialog(resource, "rejected")}>
+                      <Button variant="outline" className="rounded-xl text-red-700" disabled={isOwnUpload(resource, currentUserId)} onClick={() => openNoteDialog(resource, "rejected")}>
                         <XCircle className="mr-2 w-4 h-4" />
                         Reject
                       </Button>
@@ -203,4 +214,12 @@ function displayCourse(resource: any) {
 function formatSize(size: number) {
   if (!size) return "Unknown size";
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isOwnUpload(resource: any, currentUserId: string) {
+  return Boolean(currentUserId && (resource.uploaderId === currentUserId || resource.uploadedBy === currentUserId));
+}
+
+function isSelfReviewError(error: unknown) {
+  return error instanceof Error && error.message.includes("own upload");
 }

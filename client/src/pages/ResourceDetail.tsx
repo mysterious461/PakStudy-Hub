@@ -12,6 +12,7 @@ import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 type ReviewAction = "approved" | "rejected" | "changes_requested";
+const SELF_REVIEW_MESSAGE = "You cannot review your own upload. Please ask another admin or moderator to review this resource.";
 
 const reportReasons = ["Incorrect content", "Copyright concern", "Offensive content", "Broken file", "Other"];
 
@@ -32,9 +33,11 @@ export default function ResourceDetail() {
   const [reviewAction, setReviewAction] = useState<ReviewAction>("changes_requested");
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || "");
 
   const resourceId = params?.resourceId;
   const isAdmin = role === "Admin" || role === "Moderator";
+  const isOwnUpload = Boolean(currentUserId && resource && (resource.uploaderId === currentUserId || resource.uploadedBy === currentUserId));
 
   useEffect(() => {
     if (!resourceId) return;
@@ -76,6 +79,7 @@ export default function ResourceDetail() {
       }
     };
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUserId(user?.uid || "");
       void user?.getIdToken().catch(() => "").then((token) => load(token || ""));
       if (!user) void load("");
     });
@@ -125,6 +129,10 @@ export default function ResourceDetail() {
 
   const submitReview = async (action: ReviewAction, note = "") => {
     if (!resource) return;
+    if (isOwnUpload) {
+      toast({ title: "Review disabled", description: SELF_REVIEW_MESSAGE, variant: "destructive" });
+      return;
+    }
     setIsReviewing(true);
     try {
       const token = await auth.currentUser?.getIdToken().catch(() => "");
@@ -139,8 +147,8 @@ export default function ResourceDetail() {
       setReviewOpen(false);
       setReviewNote("");
       toast({ title: "Admin action saved", description: `Resource marked as ${labelStatus(action)}.` });
-    } catch {
-      toast({ title: "Admin action failed", description: "Please check permissions and try again.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Admin action failed", description: isSelfReviewError(error) ? SELF_REVIEW_MESSAGE : "Please check permissions and try again.", variant: "destructive" });
     } finally {
       setIsReviewing(false);
     }
@@ -284,15 +292,16 @@ export default function ResourceDetail() {
                   <ShieldCheck className="h-5 w-5 text-primary" />
                   <h2 className="font-black">Admin Controls</h2>
                 </div>
-                <Button className="w-full rounded-2xl font-bold" disabled={resource.status === "approved"} onClick={() => submitReview("approved")}>
+                {isOwnUpload && <Badge variant="outline" className="w-full justify-center rounded-full border-blue-200 bg-blue-50 text-blue-700">Own upload — review disabled</Badge>}
+                <Button className="w-full rounded-2xl font-bold" disabled={resource.status === "approved" || isOwnUpload} onClick={() => submitReview("approved")}>
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Approve
                 </Button>
-                <Button variant="outline" className="w-full rounded-2xl font-bold text-blue-700" onClick={() => openReviewDialog("changes_requested")}>
+                <Button variant="outline" className="w-full rounded-2xl font-bold text-blue-700" disabled={isOwnUpload} onClick={() => openReviewDialog("changes_requested")}>
                   <MessageSquareWarning className="mr-2 h-4 w-4" />
                   Request Changes
                 </Button>
-                <Button variant="outline" className="w-full rounded-2xl font-bold text-red-700" onClick={() => openReviewDialog("rejected")}>
+                <Button variant="outline" className="w-full rounded-2xl font-bold text-red-700" disabled={isOwnUpload} onClick={() => openReviewDialog("rejected")}>
                   <XCircle className="mr-2 h-4 w-4" />
                   Reject
                 </Button>
@@ -474,4 +483,8 @@ function formatSize(size: number) {
   if (!size) return "Unknown";
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isSelfReviewError(error: unknown) {
+  return error instanceof Error && error.message.includes("own upload");
 }

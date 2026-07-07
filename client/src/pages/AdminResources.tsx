@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 
 type ReviewAction = "approved" | "rejected" | "changes_requested";
+const SELF_REVIEW_MESSAGE = "You cannot review your own upload. Please ask another admin or moderator to review this resource.";
 
 const statusStyles: Record<string, string> = {
   pending: "border-amber-200 bg-amber-50 text-amber-700",
@@ -32,11 +34,13 @@ export default function AdminResources() {
   const [reviewAction, setReviewAction] = useState<ReviewAction>("rejected");
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || "");
 
   const loadResources = async () => {
     setIsLoading(true);
     try {
       const response = await apiRequest("GET", "/api/admin/resources");
+      setCurrentUserId(auth.currentUser?.uid || "");
       setResources(await response.json());
       setCanAccess(true);
     } catch {
@@ -75,6 +79,10 @@ export default function AdminResources() {
   }, [resources, search, status]);
 
   const submitReview = async (resource: any, action: ReviewAction, note = "") => {
+    if (isOwnUpload(resource, currentUserId)) {
+      toast({ title: "Review disabled", description: SELF_REVIEW_MESSAGE, variant: "destructive" });
+      return;
+    }
     setIsReviewing(true);
     try {
       const response = await apiRequest("PATCH", `/api/admin/resources/${resource.id}/review`, {
@@ -86,8 +94,8 @@ export default function AdminResources() {
       setReviewTarget(null);
       setReviewNote("");
       toast({ title: "Review saved", description: `Resource marked as ${labelStatus(action)}.` });
-    } catch {
-      toast({ title: "Review not saved", description: "Please check permissions and try again.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Review not saved", description: isSelfReviewError(error) ? SELF_REVIEW_MESSAGE : "Please check permissions and try again.", variant: "destructive" });
     } finally {
       setIsReviewing(false);
     }
@@ -162,7 +170,10 @@ export default function AdminResources() {
               {filteredResources.map((resource) => (
                 <div key={resource.id} className="grid gap-3 p-4 lg:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.8fr_0.8fr_220px] lg:items-center">
                   <DataCell label="Title" value={resource.title} strong helper={formatDate(resource.createdAt)} />
-                  <DataCell label="Uploader" value={resource.uploadedByName || resource.uploaderEmail || "Contributor"} />
+                  <div>
+                    <DataCell label="Uploader" value={resource.uploadedByName || resource.uploaderEmail || "Contributor"} />
+                    {isOwnUpload(resource, currentUserId) && <Badge variant="outline" className="mt-2 rounded-full border-blue-200 bg-blue-50 text-blue-700">Own upload — review disabled</Badge>}
+                  </div>
                   <DataCell label="University" value={resource.university} />
                   <DataCell label="Course" value={displayCourse(resource)} />
                   <div>
@@ -176,15 +187,15 @@ export default function AdminResources() {
                       Detail
                     </Button>
                     {resource.status !== "approved" && (
-                      <Button size="sm" className="rounded-xl font-bold" onClick={() => submitReview(resource, "approved")}>
+                      <Button size="sm" className="rounded-xl font-bold" disabled={isOwnUpload(resource, currentUserId)} onClick={() => submitReview(resource, "approved")}>
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Approve
                       </Button>
                     )}
-                    <Button variant="outline" size="icon" className="rounded-xl text-blue-700" onClick={() => openNoteDialog(resource, "changes_requested")} title="Request changes">
+                    <Button variant="outline" size="icon" className="rounded-xl text-blue-700" disabled={isOwnUpload(resource, currentUserId)} onClick={() => openNoteDialog(resource, "changes_requested")} title="Request changes">
                       <MessageSquareWarning className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="rounded-xl text-red-700" onClick={() => openNoteDialog(resource, "rejected")} title="Reject">
+                    <Button variant="outline" size="icon" className="rounded-xl text-red-700" disabled={isOwnUpload(resource, currentUserId)} onClick={() => openNoteDialog(resource, "rejected")} title="Reject">
                       <XCircle className="h-4 w-4" />
                     </Button>
                     <Button variant="outline" size="icon" className="rounded-xl" disabled title="Delete/hide coming soon">
@@ -258,4 +269,12 @@ function formatDate(value: unknown) {
   const date = value ? new Date(value as string) : null;
   if (!date || Number.isNaN(date.getTime())) return "Recently";
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function isOwnUpload(resource: any, currentUserId: string) {
+  return Boolean(currentUserId && (resource.uploaderId === currentUserId || resource.uploadedBy === currentUserId));
+}
+
+function isSelfReviewError(error: unknown) {
+  return error instanceof Error && error.message.includes("own upload");
 }

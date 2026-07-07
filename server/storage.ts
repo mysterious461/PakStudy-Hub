@@ -724,7 +724,7 @@ export class FirestoreStorage implements IStorage {
     if (!snap.exists) throw Object.assign(new Error("Resource not found"), { status: 404 });
     const resource = normalizeResource(snap.id, snap.data()!);
     if (resource.uploaderId === input.reviewedBy || resource.uploadedBy === input.reviewedBy) {
-      throw Object.assign(new Error("Reviewers cannot approve their own resources"), { status: 403 });
+      throw Object.assign(new Error("You cannot review your own upload. Please ask another admin or moderator to review this resource."), { status: 403 });
     }
 
     await ref.update({
