@@ -499,11 +499,13 @@ export async function registerRoutes(
       const reason = typeof req.body?.reason === "string" && req.body.reason.trim()
         ? req.body.reason.trim().slice(0, 1000)
         : "Resource reported from public detail page";
+      const message = typeof req.body?.message === "string" ? req.body.message.trim().slice(0, 2000) : "";
       await db.collection("reports").doc().set({
         type: "resource",
         contentType: "resource",
         contentId: req.params.id,
         reason,
+        message,
         reporterId: user?.uid || "anonymous",
         status: "pending",
         createdAt: FieldValue.serverTimestamp(),
