@@ -20,6 +20,7 @@ const statusStyles: Record<string, string> = {
   approved: "border-green-200 bg-green-50 text-green-700",
   rejected: "border-red-200 bg-red-50 text-red-700",
   changes_requested: "border-blue-200 bg-blue-50 text-blue-700",
+  hidden: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
 export default function AdminResources() {
@@ -36,12 +37,23 @@ export default function AdminResources() {
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || "");
+  const [currentRole, setCurrentRole] = useState("Student");
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadResources = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("GET", "/api/admin/resources");
+      const [response, profileResponse] = await Promise.all([
+        apiRequest("GET", "/api/admin/resources"),
+        apiRequest("GET", "/api/user/profile").catch(() => null),
+      ]);
       setCurrentUserId(auth.currentUser?.uid || "");
+      if (profileResponse) {
+        const profile = await profileResponse.json();
+        setCurrentRole(profile.role || "Student");
+      }
       setResources(await response.json());
       setCanAccess(true);
     } catch {
@@ -110,6 +122,43 @@ export default function AdminResources() {
     setReviewNote(resource.rejectionReason || "");
   };
 
+  const openDeleteDialog = (resource: any) => {
+    setDeleteTarget(resource);
+    setDeleteConfirm("");
+  };
+
+  const hideResource = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const response = await apiRequest("POST", `/api/admin/resources/${deleteTarget.id}/hide`);
+      const updated = await response.json();
+      setResources((current) => current.map((item) => item.id === deleteTarget.id ? { ...item, ...updated, status: "hidden", reviewStatus: "hidden", visibility: "private" } : item));
+      setDeleteTarget(null);
+      toast({ title: "Resource hidden", description: "This resource is no longer visible in the public library." });
+    } catch (error) {
+      toast({ title: "Could not hide resource", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const permanentlyDeleteResource = async () => {
+    if (!deleteTarget || deleteConfirm !== "DELETE") return;
+    setIsDeleting(true);
+    try {
+      const response = await apiRequest("DELETE", `/api/admin/resources/${deleteTarget.id}`);
+      const result = await response.json();
+      setResources((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      toast({ title: "Resource deleted", description: result.warning || "The metadata and uploaded file were removed." });
+    } catch (error) {
+      toast({ title: "Could not delete resource", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-170px)] bg-muted/10">
       <div className="border-b bg-background shadow-sm">
@@ -147,6 +196,7 @@ export default function AdminResources() {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
                 <SelectItem value="changes_requested">Needs Changes</SelectItem>
+                <SelectItem value="hidden">Hidden</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sourceFilter} onValueChange={setSourceFilter}>
@@ -212,7 +262,7 @@ export default function AdminResources() {
                     <Button variant="outline" size="icon" className="rounded-xl text-red-700" disabled={isOwnUpload(resource, currentUserId)} onClick={() => openNoteDialog(resource, "rejected")} title="Reject">
                       <XCircle className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="rounded-xl" disabled title="Delete/hide coming soon">
+                    <Button variant="outline" size="icon" className="rounded-xl text-red-700" onClick={() => openDeleteDialog(resource)} title="Hide or delete">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -233,6 +283,33 @@ export default function AdminResources() {
             <Button disabled={isReviewing || !reviewNote.trim()} onClick={() => reviewTarget && submitReview(reviewTarget, reviewAction, reviewNote)} className="w-full">
               {isReviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Review
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="w-[92vw] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Remove Resource</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm leading-6 text-muted-foreground">
+            <p className="font-semibold text-foreground">{deleteTarget?.title}</p>
+            <p>Are you sure you want to delete this resource? This will remove the database record and the uploaded file from storage. This action cannot be undone.</p>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-800">
+              Hide keeps the file in storage but removes it from the public library. Permanent delete removes the Firestore record and attempts to delete the Storage file.
+            </div>
+            {currentRole === "Admin" ? (
+              <Input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder="Type DELETE to permanently delete" className="rounded-2xl" />
+            ) : (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-blue-800">Moderators can hide resources, but only Admin users can permanently delete files.</div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" disabled={isDeleting} onClick={hideResource} className="rounded-2xl font-bold">Hide resource</Button>
+            <Button variant="destructive" disabled={isDeleting || currentRole !== "Admin" || deleteConfirm !== "DELETE"} onClick={permanentlyDeleteResource} className="rounded-2xl font-bold">
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Permanently delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -292,3 +369,5 @@ function isOwnUpload(resource: any, currentUserId: string) {
 function isSelfReviewError(error: unknown) {
   return error instanceof Error && error.message.includes("own upload");
 }
+
+

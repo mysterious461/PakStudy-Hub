@@ -24,7 +24,7 @@ import { logEvent } from "./analytics";
 import { createNotePurchaseIntent, createWalletTopUpIntent, requireStripe, stripe } from "./payments";
 import { storage } from "./storage";
 import { extensionFor, saveUploadedFile, upload } from "./uploads";
-import { FieldValue, adminAuth, db, getFirebaseAdminDiagnostics, toDate } from "./firebaseAdmin";
+import { FieldValue, adminAuth, bucket, db, getFirebaseAdminDiagnostics, toDate } from "./firebaseAdmin";
 
 function trackEvent(eventName: string, userId: string | undefined, properties: Record<string, unknown> = {}) {
   void logEvent(eventName, userId, properties);
@@ -161,6 +161,65 @@ function validateContributorFile(file: Express.Multer.File) {
 
 function isAdminRoleValue(role?: string) {
   return role === "Admin" || role === "Moderator";
+}
+function requireStrictAdmin(req: Request) {
+  const user = currentUser(req);
+  if (user.role !== "Admin") {
+    throw Object.assign(new Error("Admin role required for permanent resource deletion"), { status: 403 });
+  }
+  return user;
+}
+
+function deriveStoragePathFromUrl(url?: string) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    const objectMarker = "/o/";
+    const objectIndex = parsed.pathname.indexOf(objectMarker);
+    if (objectIndex >= 0) {
+      return decodeURIComponent(parsed.pathname.slice(objectIndex + objectMarker.length));
+    }
+    if (parsed.hostname === "storage.googleapis.com") {
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts.length > 1) return decodeURIComponent(parts.slice(1).join("/"));
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function storagePathForResource(data: Record<string, any>) {
+  return data.storagePath
+    || data.storageObjectPath
+    || data.filePath
+    || data.file?.path
+    || deriveStoragePathFromUrl(data.fileUrl || data.file?.url);
+}
+
+async function writeResourceAuditLog(input: {
+  action: "resource_deleted" | "resource_hidden" | "resource_storage_path_backfill";
+  resourceId?: string;
+  resourceTitle?: string;
+  fileName?: string;
+  storagePath?: string;
+  performedBy: string;
+  performedByEmail?: string;
+  result: string;
+  errorMessage?: string;
+}) {
+  await db.collection("adminAuditLogs").add({
+    action: input.action,
+    resourceId: input.resourceId ?? "",
+    resourceTitle: input.resourceTitle ?? "",
+    fileName: input.fileName ?? "",
+    storagePath: input.storagePath ?? "",
+    performedBy: input.performedBy,
+    performedByEmail: input.performedByEmail ?? "",
+    result: input.result,
+    errorMessage: input.errorMessage ?? "",
+    createdAt: FieldValue.serverTimestamp(),
+  });
 }
 
 function normalizePublicResource(id: string, data: Record<string, any>) {
@@ -945,6 +1004,126 @@ export async function registerRoutes(
     }, "/api/contributor/resources"),
   );
 
+
+  app.post(
+    "/api/admin/resources/backfill-storage-paths",
+    requireAuth,
+    asyncRoute(async (req) => {
+      const user = requireStrictAdmin(req);
+      const snap = await db.collection("resources").limit(500).get();
+      let updated = 0;
+      let missing = 0;
+      const batch = db.batch();
+
+      snap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.storagePath || data.storageObjectPath || data.filePath) return;
+        const storagePath = storagePathForResource(data);
+        if (!storagePath) {
+          missing += 1;
+          return;
+        }
+        updated += 1;
+        batch.set(doc.ref, {
+          storagePath,
+          filePath: storagePath,
+          storageObjectPath: storagePath,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      });
+
+      if (updated > 0) await batch.commit();
+      await writeResourceAuditLog({
+        action: "resource_storage_path_backfill",
+        performedBy: user.uid,
+        performedByEmail: user.email,
+        result: `updated:${updated};missing:${missing}`,
+      });
+      return { updated, missing };
+    }, "/api/admin/resources/backfill-storage-paths"),
+  );
+
+  app.post(
+    "/api/admin/resources/:id/hide",
+    requireAuth,
+    requireAdmin,
+    asyncRoute(async (req) => {
+      const user = currentUser(req);
+      const ref = db.collection("resources").doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) throw Object.assign(new Error("Resource not found"), { status: 404 });
+      const data = snap.data() || {};
+      const storagePath = storagePathForResource(data);
+
+      await ref.set({
+        status: "hidden",
+        reviewStatus: "hidden",
+        visibility: "private",
+        hiddenAt: FieldValue.serverTimestamp(),
+        hiddenBy: user.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      await writeResourceAuditLog({
+        action: "resource_hidden",
+        resourceId: snap.id,
+        resourceTitle: data.title,
+        fileName: data.fileName || data.file?.originalName,
+        storagePath,
+        performedBy: user.uid,
+        performedByEmail: user.email,
+        result: "hidden",
+      });
+
+      const updated = await ref.get();
+      return normalizePublicResource(updated.id, updated.data() || {});
+    }, "/api/admin/resources/hide"),
+  );
+
+  app.delete(
+    "/api/admin/resources/:id",
+    requireAuth,
+    asyncRoute(async (req) => {
+      const user = requireStrictAdmin(req);
+      const ref = db.collection("resources").doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) throw Object.assign(new Error("Resource not found"), { status: 404 });
+
+      const data = snap.data() || {};
+      const storagePath = storagePathForResource(data);
+      let result = "deleted";
+      let errorMessage = "";
+
+      if (storagePath) {
+        try {
+          await bucket.file(storagePath).delete({ ignoreNotFound: true } as any);
+        } catch (error: any) {
+          result = "metadata_deleted_storage_delete_failed";
+          errorMessage = error?.message || "Storage file could not be deleted.";
+          console.warn("Resource metadata deleted but storage file deletion failed", { resourceId: snap.id, storagePath, message: errorMessage });
+        }
+      } else {
+        result = "metadata_deleted_storage_path_missing";
+        errorMessage = "Storage file path missing; metadata deleted but file may remain.";
+        console.warn(errorMessage, { resourceId: snap.id });
+      }
+
+      await ref.delete();
+      await writeResourceAuditLog({
+        action: "resource_deleted",
+        resourceId: snap.id,
+        resourceTitle: data.title,
+        fileName: data.fileName || data.file?.originalName,
+        storagePath,
+        performedBy: user.uid,
+        performedByEmail: user.email,
+        result,
+        errorMessage,
+      });
+
+      return { ok: true, resourceId: snap.id, result, warning: errorMessage || undefined };
+    }, "/api/admin/resources/delete"),
+  );
   app.get(
     "/api/admin/resources/pending",
     requireAuth,
@@ -1094,3 +1273,4 @@ export async function registerRoutes(
 
   return httpServer;
 }
+

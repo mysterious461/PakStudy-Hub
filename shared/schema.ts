@@ -244,13 +244,14 @@ export type StoredFile = {
   contentType: string;
   size: number;
   originalName: string;
+  bucket?: string;
 };
 
 export type AcademicResource = AcademicResourceMetadata & {
   id: string;
   file: StoredFile;
-  status: "pending" | "approved" | "rejected" | "changes_requested";
-  reviewStatus?: "pending" | "approved" | "rejected" | "changes_requested";
+  status: "pending" | "approved" | "rejected" | "changes_requested" | "hidden" | "deleted";
+  reviewStatus?: "pending" | "approved" | "rejected" | "changes_requested" | "hidden" | "deleted";
   rejectionReason?: string;
   reviewedAt?: Date;
   reviewedBy?: string;
@@ -262,6 +263,10 @@ export type AcademicResource = AcademicResourceMetadata & {
   fileName?: string;
   fileType?: string;
   fileSize?: number;
+  storagePath?: string;
+  filePath?: string;
+  storageObjectPath?: string;
+  bucket?: string;
   hasPermission?: boolean;
   faculty?: string;
   courseCode?: string;
@@ -370,3 +375,5 @@ export type PaymentIntentResponse = {
   amount: number;
   currency: string;
 };
+
+

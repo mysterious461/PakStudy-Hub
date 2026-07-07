@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle, ExternalLink, FileText, Home, Loader2, MessageSquareWarning, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, ExternalLink, FileText, Home, Loader2, MessageSquareWarning, Trash2, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
@@ -24,10 +25,21 @@ export default function AdminResourceReview() {
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || "");
+  const [currentRole, setCurrentRole] = useState("Student");
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadResources = async () => {
     try {
-      await apiRequest("GET", "/api/admin/stats");
+      const [, profileResponse] = await Promise.all([
+        apiRequest("GET", "/api/admin/stats"),
+        apiRequest("GET", "/api/user/profile").catch(() => null),
+      ]);
+      if (profileResponse) {
+        const profile = await profileResponse.json();
+        setCurrentRole(profile.role || "Student");
+      }
       setCurrentUserId(auth.currentUser?.uid || "");
       setCanAccess(true);
       const response = await apiRequest("GET", "/api/admin/resources/pending");
@@ -70,6 +82,42 @@ export default function AdminResourceReview() {
     setReviewTarget(resource);
     setReviewAction(action);
     setReviewNote("");
+  };
+
+  const openDeleteDialog = (resource: any) => {
+    setDeleteTarget(resource);
+    setDeleteConfirm("");
+  };
+
+  const hideResource = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await apiRequest("POST", `/api/admin/resources/${deleteTarget.id}/hide`);
+      setResources((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      toast({ title: "Resource hidden", description: "This resource was removed from the review queue and public library." });
+    } catch (error) {
+      toast({ title: "Could not hide resource", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const permanentlyDeleteResource = async () => {
+    if (!deleteTarget || deleteConfirm !== "DELETE") return;
+    setIsDeleting(true);
+    try {
+      const response = await apiRequest("DELETE", `/api/admin/resources/${deleteTarget.id}`);
+      const result = await response.json();
+      setResources((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      toast({ title: "Resource deleted", description: result.warning || "The metadata and uploaded file were removed." });
+    } catch (error) {
+      toast({ title: "Could not delete resource", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -127,7 +175,7 @@ export default function AdminResourceReview() {
                       <ExternalLink className="w-4 h-4 mr-2" />
                       View Details
                     </Button>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                       <Button className="rounded-xl" disabled={isOwnUpload(resource, currentUserId)} onClick={() => submitReview(resource, "approved")}>
                         <CheckCircle className="mr-2 w-4 h-4" />
                         Approve
@@ -139,6 +187,10 @@ export default function AdminResourceReview() {
                       <Button variant="outline" className="rounded-xl text-red-700" disabled={isOwnUpload(resource, currentUserId)} onClick={() => openNoteDialog(resource, "rejected")}>
                         <XCircle className="mr-2 w-4 h-4" />
                         Reject
+                      </Button>
+                      <Button variant="outline" className="rounded-xl text-red-700" onClick={() => openDeleteDialog(resource)}>
+                        <Trash2 className="mr-2 w-4 h-4" />
+                        Remove
                       </Button>
                     </div>
                   </div>
@@ -168,6 +220,33 @@ export default function AdminResourceReview() {
             >
               {isReviewing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Save Review
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="w-[92vw] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Remove Resource</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm leading-6 text-muted-foreground">
+            <p className="font-semibold text-foreground">{deleteTarget?.title}</p>
+            <p>Are you sure you want to delete this resource? This will remove the database record and the uploaded file from storage. This action cannot be undone.</p>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-800">
+              Hide keeps the file in storage but removes it from public and review views. Permanent delete removes the Firestore record and attempts to delete the Storage file.
+            </div>
+            {currentRole === "Admin" ? (
+              <Input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder="Type DELETE to permanently delete" className="rounded-2xl" />
+            ) : (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-blue-800">Moderators can hide resources, but only Admin users can permanently delete files.</div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" disabled={isDeleting} onClick={hideResource} className="rounded-2xl font-bold">Hide resource</Button>
+            <Button variant="destructive" disabled={isDeleting || currentRole !== "Admin" || deleteConfirm !== "DELETE"} onClick={permanentlyDeleteResource} className="rounded-2xl font-bold">
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Permanently delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -223,3 +302,4 @@ function isOwnUpload(resource: any, currentUserId: string) {
 function isSelfReviewError(error: unknown) {
   return error instanceof Error && error.message.includes("own upload");
 }
+

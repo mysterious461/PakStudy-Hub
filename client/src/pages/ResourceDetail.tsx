@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { auth } from "@/lib/firebase";
@@ -34,9 +35,13 @@ export default function ResourceDetail() {
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(auth.currentUser?.uid || "");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const resourceId = params?.resourceId;
   const isAdmin = role === "Admin" || role === "Moderator";
+  const canHardDelete = role === "Admin";
   const isOwnUpload = Boolean(currentUserId && resource && (resource.uploaderId === currentUserId || resource.uploadedBy === currentUserId));
 
   useEffect(() => {
@@ -158,6 +163,46 @@ export default function ResourceDetail() {
     setReviewAction(action);
     setReviewNote(resource?.rejectionReason || "");
     setReviewOpen(true);
+  };
+
+  const hideResource = async () => {
+    if (!resource) return;
+    setIsDeleting(true);
+    try {
+      const token = await auth.currentUser?.getIdToken().catch(() => "");
+      const response = await fetch(`/api/admin/resources/${resource.id}/hide`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!response.ok) throw new Error("Hide failed");
+      setResource({ ...resource, status: "hidden", reviewStatus: "hidden", visibility: "private" });
+      setDeleteOpen(false);
+      toast({ title: "Resource hidden", description: "This resource is no longer visible in the public library." });
+    } catch {
+      toast({ title: "Could not hide resource", description: "Please check permissions and try again.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const permanentlyDeleteResource = async () => {
+    if (!resource || deleteConfirm !== "DELETE") return;
+    setIsDeleting(true);
+    try {
+      const token = await auth.currentUser?.getIdToken().catch(() => "");
+      const response = await fetch(`/api/admin/resources/${resource.id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!response.ok) throw new Error("Delete failed");
+      const result = await response.json();
+      toast({ title: "Resource deleted", description: result.warning || "The metadata and uploaded file were removed." });
+      setLocation("/admin/resources");
+    } catch {
+      toast({ title: "Could not delete resource", description: "Please check permissions and try again.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (isLoading) {
@@ -311,7 +356,7 @@ export default function ResourceDetail() {
                   <XCircle className="mr-2 h-4 w-4" />
                   Reject
                 </Button>
-                <Button variant="outline" className="w-full rounded-2xl font-bold" disabled>
+                <Button variant="outline" className="w-full rounded-2xl font-bold" onClick={() => { setDeleteConfirm(""); setDeleteOpen(true); }}>
                   <Archive className="mr-2 h-4 w-4" />
                   Hide / Delete
                 </Button>
@@ -356,6 +401,33 @@ export default function ResourceDetail() {
             <Button disabled={isReviewing || !reviewNote.trim()} className="w-full rounded-2xl font-bold" onClick={() => submitReview(reviewAction, reviewNote)}>
               {isReviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Admin Action
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="w-[92vw] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Remove Resource</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm leading-6 text-muted-foreground">
+            <p className="font-semibold text-foreground">{resource?.title}</p>
+            <p>Are you sure you want to delete this resource? This will remove the database record and the uploaded file from storage. This action cannot be undone.</p>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-800">
+              Hide keeps the uploaded file but removes it from the public library. Permanent delete removes the Firestore record and attempts to delete the Storage file.
+            </div>
+            {canHardDelete ? (
+              <Input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder="Type DELETE to permanently delete" className="rounded-2xl" />
+            ) : (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-blue-800">Moderators can hide resources, but only Admin users can permanently delete files.</div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" disabled={isDeleting} onClick={hideResource} className="rounded-2xl font-bold">Hide resource</Button>
+            <Button variant="destructive" disabled={isDeleting || !canHardDelete || deleteConfirm !== "DELETE"} onClick={permanentlyDeleteResource} className="rounded-2xl font-bold">
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Permanently delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -494,3 +566,4 @@ function formatSize(size: number) {
 function isSelfReviewError(error: unknown) {
   return error instanceof Error && error.message.includes("own upload");
 }
+

@@ -123,5 +123,7 @@ export async function saveUploadedFile(
     contentType: file.mimetype,
     size: file.size,
     originalName: file.originalname,
+    bucket: bucket.name,
   };
 }
+

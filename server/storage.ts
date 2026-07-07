@@ -188,6 +188,7 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
     contentType: data.fileType ?? "",
     size: data.fileSize ?? 0,
     originalName: data.fileName ?? "",
+    bucket: data.bucket ?? "",
   };
 
   return {
@@ -229,6 +230,10 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
     fileName: data.fileName ?? file.originalName,
     fileType: data.fileType ?? file.contentType,
     fileSize: data.fileSize ?? file.size,
+    storagePath: data.storagePath ?? data.storageObjectPath ?? data.filePath ?? file.path ?? "",
+    filePath: data.filePath ?? data.storagePath ?? file.path ?? "",
+    storageObjectPath: data.storageObjectPath ?? data.storagePath ?? file.path ?? "",
+    bucket: data.bucket ?? file.bucket ?? "",
     fileCategory: data.fileCategory ?? "",
     fileExtension: data.fileExtension ?? "",
     isAdminCurated: data.isAdminCurated ?? false,
@@ -629,6 +634,10 @@ export class FirestoreStorage implements IStorage {
       fileName: input.file.originalName,
       fileType: input.file.contentType,
       fileSize: input.file.size,
+      storagePath: input.file.path,
+      filePath: input.file.path,
+      storageObjectPath: input.file.path,
+      bucket: input.file.bucket ?? "",
       status: input.visibility === "public" ? "approved" : "pending",
       reviewStatus: input.visibility === "public" ? "approved" : "pending",
       uploadedBy: input.uploadedBy,
@@ -709,6 +718,10 @@ export class FirestoreStorage implements IStorage {
       fileName: input.file.originalName,
       fileType: input.file.contentType,
       fileSize: input.file.size,
+      storagePath: input.file.path,
+      filePath: input.file.path,
+      storageObjectPath: input.file.path,
+      bucket: input.file.bucket ?? "",
       fileCategory: input.fileCategory ?? "",
       fileExtension: input.fileExtension ?? "",
       previewStatus: ["image", "audio", "video", "pdf"].includes(input.fileCategory ?? "") ? "ready" : "unavailable",
@@ -909,3 +922,4 @@ export class FirestoreStorage implements IStorage {
 }
 
 export const storage = new FirestoreStorage();
+
