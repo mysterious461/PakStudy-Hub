@@ -197,6 +197,62 @@ function storagePathForResource(data: Record<string, any>) {
     || deriveStoragePathFromUrl(data.fileUrl || data.file?.url);
 }
 
+
+const academicLevels = ["university", "faculty", "department", "degree", "semester"] as const;
+const academicOptionSchema = z.object({
+  level: z.enum(academicLevels),
+  value: z.string().min(2).max(180),
+  parentUniversity: z.string().max(180).optional().default(""),
+  parentFaculty: z.string().max(180).optional().default(""),
+  parentDepartment: z.string().max(180).optional().default(""),
+  parentDegree: z.string().max(180).optional().default(""),
+});
+
+type AcademicLevel = typeof academicLevels[number];
+
+function emptyAcademicOptions() {
+  return {
+    universities: [] as string[],
+    faculties: [] as string[],
+    departments: [] as string[],
+    degrees: [] as string[],
+    semesters: [] as string[],
+  };
+}
+
+function academicLevelKey(level: AcademicLevel) {
+  return level === "university" ? "universities"
+    : level === "faculty" ? "faculties"
+      : level === "department" ? "departments"
+        : level === "degree" ? "degrees"
+          : "semesters";
+}
+
+function normalizeAcademicOption(id: string, data: Record<string, any>) {
+  return {
+    id,
+    level: data.level ?? "university",
+    value: data.value ?? "",
+    parentUniversity: data.parentUniversity ?? "",
+    parentFaculty: data.parentFaculty ?? "",
+    parentDepartment: data.parentDepartment ?? "",
+    parentDegree: data.parentDegree ?? "",
+    active: data.active !== false,
+    createdAt: data.createdAt ? toDate(data.createdAt).toISOString() : undefined,
+  };
+}
+
+function addOptionValue(target: ReturnType<typeof emptyAcademicOptions>, level: AcademicLevel, value: unknown) {
+  const cleaned = String(value || "").trim();
+  if (!cleaned) return;
+  const key = academicLevelKey(level);
+  if (!target[key].some((item) => item.toLowerCase() === cleaned.toLowerCase())) target[key].push(cleaned);
+}
+
+function sortAcademicOptions<T extends Record<string, string[]>>(options: T) {
+  Object.values(options).forEach((items) => items.sort((a, b) => a.localeCompare(b)));
+  return options;
+}
 async function writeResourceAuditLog(input: {
   action: "resource_deleted" | "resource_hidden" | "resource_storage_path_backfill";
   resourceId?: string;
@@ -492,6 +548,115 @@ export async function registerRoutes(
     }, "/api/admin/contact-messages"),
   );
 
+
+  app.get(
+    "/api/academic/options",
+    asyncRoute(async () => {
+      const options = emptyAcademicOptions();
+      const [managedSnap, resourcesSnap] = await Promise.all([
+        db.collection("academicHierarchy").where("active", "==", true).limit(500).get(),
+        db.collection("resources").limit(500).get(),
+      ]);
+
+      managedSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (academicLevels.includes(data.level)) addOptionValue(options, data.level, data.value);
+      });
+      resourcesSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        addOptionValue(options, "university", data.university);
+        addOptionValue(options, "faculty", data.faculty || data.department);
+        addOptionValue(options, "department", data.department || data.faculty);
+        addOptionValue(options, "degree", data.degree);
+        addOptionValue(options, "semester", data.semester);
+      });
+
+      return sortAcademicOptions(options);
+    }, "/api/academic/options"),
+  );
+
+  app.get(
+    "/api/resources/course-titles",
+    asyncRoute(async (req) => {
+      const search = typeof req.query.search === "string" ? req.query.search.trim().toLowerCase() : "";
+      const snap = await db.collection("resources").limit(500).get();
+      const titles = new Map<string, { title: string; count: number; courseCodes: string[] }>();
+      snap.docs.forEach((doc) => {
+        const data = doc.data();
+        const title = String(data.courseTitle || data.subject || data.course || "").trim();
+        if (!title) return;
+        if (search && !title.toLowerCase().includes(search)) return;
+        const key = title.toLowerCase();
+        const existing = titles.get(key) || { title, count: 0, courseCodes: [] };
+        existing.count += 1;
+        const code = String(data.courseCode || "").trim();
+        if (code && !existing.courseCodes.includes(code)) existing.courseCodes.push(code);
+        titles.set(key, existing);
+      });
+      return Array.from(titles.values())
+        .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
+        .slice(0, 20);
+    }, "/api/resources/course-titles"),
+  );
+
+  app.get(
+    "/api/admin/academic-options",
+    requireAuth,
+    requireAdmin,
+    asyncRoute(async () => {
+      const snap = await db.collection("academicHierarchy").limit(500).get();
+      return snap.docs.map((doc) => normalizeAcademicOption(doc.id, doc.data())).sort((a, b) => `${a.level}:${a.value}`.localeCompare(`${b.level}:${b.value}`));
+    }, "/api/admin/academic-options"),
+  );
+
+  app.post(
+    "/api/admin/academic-options",
+    requireAuth,
+    asyncRoute(async (req) => {
+      const user = requireStrictAdmin(req);
+      const input = parseBody(academicOptionSchema, req);
+      const duplicateSnap = await db.collection("academicHierarchy")
+        .where("level", "==", input.level)
+        .where("valueKey", "==", input.value.trim().toLowerCase())
+        .limit(1)
+        .get();
+
+      const payload = {
+        ...input,
+        value: input.value.trim(),
+        valueKey: input.value.trim().toLowerCase(),
+        active: true,
+        createdBy: user.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      if (!duplicateSnap.empty) {
+        const ref = duplicateSnap.docs[0].ref;
+        await ref.set(payload, { merge: true });
+        const updated = await ref.get();
+        return normalizeAcademicOption(updated.id, updated.data() || {});
+      }
+
+      const ref = db.collection("academicHierarchy").doc();
+      await ref.set({ ...payload, createdAt: FieldValue.serverTimestamp() });
+      const created = await ref.get();
+      return normalizeAcademicOption(created.id, created.data() || {});
+    }, "/api/admin/academic-options"),
+  );
+
+  app.delete(
+    "/api/admin/academic-options/:id",
+    requireAuth,
+    asyncRoute(async (req) => {
+      const user = requireStrictAdmin(req);
+      const ref = db.collection("academicHierarchy").doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) throw Object.assign(new Error("Academic option not found"), { status: 404 });
+      await ref.set({ active: false, hiddenBy: user.uid, hiddenAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      const updated = await ref.get();
+      return normalizeAcademicOption(updated.id, updated.data() || {});
+    }, "/api/admin/academic-options/delete"),
+  );
   app.get(
     "/api/resources/public",
     asyncRoute(async (req) => {
@@ -1273,4 +1438,5 @@ export async function registerRoutes(
 
   return httpServer;
 }
+
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CheckCircle, FileCheck2, Home, Mail, ShieldAlert, Trash2, UploadCloud, Users, XCircle } from "lucide-react";
+import { BookOpen, CheckCircle, FileCheck2, Home, Mail, ShieldAlert, Trash2, UploadCloud, Users, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,12 +76,13 @@ export default function Admin() {
           <AdminStatCard icon={ShieldAlert} label="Pending Reports" value={stats.pendingReports || reports.filter(r => r.status === "pending").length} color="text-orange-600 bg-orange-100" />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-5">
+        <div className="grid gap-4 lg:grid-cols-6">
           <ActionCard icon={FileCheck2} title="Manage All Resources" text="Browse every approved, pending, rejected, and needs-changes resource." button="Manage Resources" onClick={() => setLocation("/admin/resources")} />
           <ActionCard icon={FileCheck2} title="Review Resources" text="Approve, reject, or request changes for student uploads." button="Review Resources" onClick={() => setLocation("/admin/resources/review")} />
           <ActionCard icon={Users} title="Manage Users" text="Inspect user reports and moderation status." button="Manage Users" onClick={() => setLocation("/admin")} />
           <ActionCard icon={UploadCloud} title="Curated Uploads" text="Add academic files manually before public launch." button="Open Upload" onClick={() => setLocation("/admin-upload")} />
           <ActionCard icon={Mail} title="Contact Messages" text="Review support, copyright, partnership, and technical requests." button="Open Inbox" onClick={() => setLocation("/admin/contact-messages")} />
+          <ActionCard icon={BookOpen} title="Academic Hierarchy" text="Manage universities, schools, departments, degree programs, and semesters." button="Manage Hierarchy" onClick={() => setLocation("/admin/academic-hierarchy")} />
         </div>
 
         {/* Tabs */}
@@ -168,3 +169,4 @@ function ActionCard({ icon: Icon, title, text, button, onClick }: { icon: any; t
     </Card>
   );
 }
+

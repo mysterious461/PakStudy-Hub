@@ -184,6 +184,7 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
               {isAdmin && <MobileNavButton icon={HeartHandshake} label="Resource Review Queue" onClick={() => goTo("/admin/resources/review")} />}
               {isAdmin && <MobileNavButton icon={Files} label="Manage Resources" onClick={() => goTo("/admin/resources")} />}
               {isAdmin && <MobileNavButton icon={Mail} label="Contact Messages" onClick={() => goTo("/admin/contact-messages")} />}
+              {isAdmin && <MobileNavButton icon={BookOpen} label="Academic Hierarchy" onClick={() => goTo("/admin/academic-hierarchy")} />}
               {hasKnownSession ? (
                 <MobileNavButton icon={LogOut} label="Sign Out" onClick={handleSignOut} />
               ) : (
@@ -269,6 +270,7 @@ function AdminDropdown({ active, onNavigate }: { active: boolean; onNavigate: (p
         <DropdownMenuItem onClick={() => onNavigate("/admin/resources")}><Files className="mr-2 h-4 w-4" /> Manage Resources</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onNavigate("/admin")}><Users className="mr-2 h-4 w-4" /> Manage Users</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onNavigate("/admin/contact-messages")}><Mail className="mr-2 h-4 w-4" /> Contact Messages</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/admin/academic-hierarchy")}><BookOpen className="mr-2 h-4 w-4" /> Academic Hierarchy</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onNavigate("/admin")}><ShieldCheck className="mr-2 h-4 w-4" /> Reports</DropdownMenuItem>
         <DropdownMenuItem disabled><Activity className="mr-2 h-4 w-4" /> System Health</DropdownMenuItem>
       </DropdownMenuContent>
@@ -327,3 +329,4 @@ function FooterGroup({ title, links, onNavigate }: { title: string; links: strin
     </div>
   );
 }
+

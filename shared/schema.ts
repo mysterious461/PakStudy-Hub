@@ -191,7 +191,7 @@ export const contributorResourceSchema = z.object({
   department: z.string().min(2).max(160),
   degree: z.string().min(2).max(160),
   semester: z.string().min(1).max(60),
-  courseCode: z.string().min(2).max(80),
+  courseCode: z.string().max(80).optional().default(""),
   courseTitle: z.string().min(2).max(180),
   course: z.string().max(160).optional().default(""),
   subject: z.string().max(160).optional().default(""),
@@ -375,5 +375,6 @@ export type PaymentIntentResponse = {
   amount: number;
   currency: string;
 };
+
 
 

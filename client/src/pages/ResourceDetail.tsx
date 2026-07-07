@@ -246,7 +246,8 @@ export default function ResourceDetail() {
           <Card className="border-border/60 shadow-sm">
             <CardContent className="p-6">
               <h1 className="max-w-4xl text-3xl font-black tracking-normal sm:text-4xl">{resource.title}</h1>
-              <p className="mt-3 text-lg font-semibold text-primary">{displayCourse(resource)}</p>
+              <p className="mt-3 text-xl font-black text-primary">{resource.courseTitle || resource.subject || resource.course || "Course title not added"}</p>
+              {resource.courseCode ? <p className="mt-1 text-sm font-semibold text-muted-foreground">Course Code: {resource.courseCode}</p> : null}
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Meta label="University" value={resource.university} />
                 <Meta label="Degree Program" value={resource.degree} />
@@ -566,4 +567,5 @@ function formatSize(size: number) {
 function isSelfReviewError(error: unknown) {
   return error instanceof Error && error.message.includes("own upload");
 }
+
 

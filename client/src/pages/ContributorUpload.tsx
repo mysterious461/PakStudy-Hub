@@ -43,13 +43,34 @@ const initialForm = {
 
 type UploadForm = typeof initialForm;
 
+type AcademicOptions = {
+  universities: string[];
+  faculties: string[];
+  departments: string[];
+  degrees: string[];
+  semesters: string[];
+};
+
+type CourseTitleSuggestion = {
+  title: string;
+  count: number;
+  courseCodes?: string[];
+};
+
+const emptyAcademicOptions: AcademicOptions = {
+  universities: [],
+  faculties: [],
+  departments: [],
+  degrees: [],
+  semesters: [],
+};
+
 const requiredFields: Array<{ key: keyof UploadForm; label: string; minLength?: number }> = [
   { key: "university", label: "University", minLength: 2 },
   { key: "faculty", label: "Faculty", minLength: 2 },
-  { key: "department", label: "Faculty", minLength: 2 },
+  { key: "department", label: "Department", minLength: 2 },
   { key: "degree", label: "Degree Program", minLength: 2 },
   { key: "semester", label: "Semester" },
-  { key: "courseCode", label: "Course Code", minLength: 2 },
   { key: "courseTitle", label: "Course Title", minLength: 2 },
   { key: "language", label: "Language", minLength: 2 },
   { key: "title", label: "Title", minLength: 3 },
@@ -112,10 +133,32 @@ export default function ContributorUpload() {
   const [activeFileName, setActiveFileName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [submittedCurated, setSubmittedCurated] = useState(false);
+  const [academicOptions, setAcademicOptions] = useState<AcademicOptions>(emptyAcademicOptions);
+  const [courseTitleSuggestions, setCourseTitleSuggestions] = useState<CourseTitleSuggestion[]>([]);
 
   useEffect(() => {
     if (!auth.currentUser) setLocation("/auth?returnTo=/contributors/upload");
   }, [setLocation]);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      const response = await fetch("/api/academic/options").catch(() => null);
+      if (!response?.ok) return;
+      setAcademicOptions(await response.json());
+    };
+    void loadOptions();
+  }, []);
+
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      const search = form.courseTitle.trim();
+      const response = await fetch(`/api/resources/course-titles?search=${encodeURIComponent(search)}`).catch(() => null);
+      if (!response?.ok) return;
+      setCourseTitleSuggestions(await response.json());
+    };
+    const timer = window.setTimeout(() => void loadSuggestions(), 180);
+    return () => window.clearTimeout(timer);
+  }, [form.courseTitle]);
 
   useEffect(() => {
     const loadRole = async () => {
@@ -149,13 +192,18 @@ export default function ContributorUpload() {
   const estimatedSeconds = Math.max(1, Math.ceil(selectedSize / (1.5 * 1024 * 1024)));
 
   const updateField = (field: keyof UploadForm, value: string | boolean) => {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-      ...(field === "faculty" ? { department: String(value) } : {}),
-      ...(field === "courseCode" ? { course: String(value) } : {}),
-      ...(field === "resourceCategory" ? { resourceType: mapCategoryToResourceType(String(value)) } : {}),
-    }));
+    setForm((current) => {
+      const next = {
+        ...current,
+        [field]: value,
+        ...(field === "resourceCategory" ? { resourceType: mapCategoryToResourceType(String(value)) } : {}),
+      };
+      if (field === "university") return { ...next, faculty: "", department: "", degree: "", semester: "" };
+      if (field === "faculty") return { ...next, department: "", degree: "", semester: "" };
+      if (field === "department") return { ...next, degree: "", semester: "" };
+      if (field === "degree") return { ...next, semester: "" };
+      return next;
+    });
   };
 
   const addFiles = (selected: FileList | File[]) => {
@@ -271,12 +319,18 @@ export default function ContributorUpload() {
             <div className="space-y-5">
               <Card className="border-border/60 shadow-sm">
                 <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
-                  <Field label="University"><Input placeholder="National University of Sciences and Technology" value={form.university} onChange={(event) => updateField("university", event.target.value)} required /></Field>
-                  <Field label="Faculty"><Input placeholder="Faculty of Engineering" value={form.faculty} onChange={(event) => updateField("faculty", event.target.value)} required /></Field>
-                  <Field label="Degree Program"><Input placeholder="BS Computer Science" value={form.degree} onChange={(event) => updateField("degree", event.target.value)} required /></Field>
-                  <Field label="Semester"><Input placeholder="4th semester" value={form.semester} onChange={(event) => updateField("semester", event.target.value)} required /></Field>
-                  <Field label="Course Code" helper="CS201, MATH101, EE232"><Input placeholder="CS201" value={form.courseCode} onChange={(event) => updateField("courseCode", event.target.value)} required /></Field>
-                  <Field label="Course Title" helper="Data Structures, Calculus-I, Circuit Analysis"><Input placeholder="Data Structures and Algorithms" value={form.courseTitle} onChange={(event) => updateField("courseTitle", event.target.value)} required /></Field>
+                  <Field label="University"><HierarchySelect value={form.university} options={academicOptions.universities} placeholder="Select university" onValueChange={(value) => updateField("university", value)} /></Field>
+                  <Field label="Faculty / School"><HierarchySelect value={form.faculty} options={academicOptions.faculties} placeholder="Select faculty or school" onValueChange={(value) => updateField("faculty", value)} /></Field>
+                  <Field label="Department"><HierarchySelect value={form.department} options={academicOptions.departments} placeholder="Select department" onValueChange={(value) => updateField("department", value)} /></Field>
+                  <Field label="Degree Program"><HierarchySelect value={form.degree} options={academicOptions.degrees} placeholder="Select degree program" onValueChange={(value) => updateField("degree", value)} /></Field>
+                  <Field label="Semester"><HierarchySelect value={form.semester} options={academicOptions.semesters} placeholder="Select semester" onValueChange={(value) => updateField("semester", value)} /></Field>
+                  <Field label="Course Title" helper="Start typing to reuse an existing title or enter a new one.">
+                    <Input list="course-title-suggestions" placeholder="Data Structures and Algorithms" value={form.courseTitle} onChange={(event) => updateField("courseTitle", event.target.value)} required />
+                    <datalist id="course-title-suggestions">
+                      {courseTitleSuggestions.map((item) => <option key={item.title} value={item.title}>{item.courseCodes?.[0] ? `${item.courseCodes[0]} / ${item.count} upload${item.count === 1 ? "" : "s"}` : `${item.count} upload${item.count === 1 ? "" : "s"}`}</option>)}
+                    </datalist>
+                  </Field>
+                  <Field label="Course Code" helper="Optional. Used for search and display only."><Input placeholder="CS201" value={form.courseCode} onChange={(event) => updateField("courseCode", event.target.value)} /></Field>
                   <Field label="Resource Category">
                     <Select value={form.resourceCategory} onValueChange={(value) => updateField("resourceCategory", value)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -485,6 +539,17 @@ function SelectedFile({ file, onRemove }: { file: File; onRemove: () => void }) 
   );
 }
 
+function HierarchySelect({ value, options, placeholder, onValueChange }: { value: string; options: string[]; placeholder: string; onValueChange: (value: string) => void }) {
+  return (
+    <Select value={value} onValueChange={onValueChange} disabled={options.length === 0}>
+      <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder={options.length ? placeholder : "Ask admin to add options"} /></SelectTrigger>
+      <SelectContent>
+        {options.length ? options.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>) : <SelectItem value="__empty" disabled>No options yet</SelectItem>}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function PreviewPanel({ file, previewUrl }: { file?: File; previewUrl: string }) {
   const rule = file ? getFileRule(file) : undefined;
   const Icon = rule?.icon || FileText;
@@ -546,3 +611,6 @@ function mapCategoryToResourceType(category: string) {
   };
   return map[category] || "notes";
 }
+
+
+
