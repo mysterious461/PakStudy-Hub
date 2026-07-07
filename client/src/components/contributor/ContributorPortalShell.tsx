@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { BookOpen, Files, Home, LayoutDashboard, LogIn, LogOut, Menu, Search, ShieldCheck, User, X } from "lucide-react";
+import { Activity, Bell, BookOpen, ChevronDown, Files, HeartHandshake, HelpCircle, Home, LayoutDashboard, LogIn, LogOut, Mail, Menu, Search, Settings, ShieldCheck, User, Users, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { auth } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 import logoImage from "@assets/generated_images/minimalist_education_logo_with_book_and_crescent_moon_green.png";
@@ -119,9 +121,11 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
     { icon: Search, label: "Resources", path: "/resources" },
     { icon: BookOpen, label: "Contribute", path: hasKnownSession ? "/contributors/upload" : "/auth?returnTo=/contributors/upload" },
     { icon: Files, label: "My Uploads", path: hasKnownSession ? "/contributors/uploads" : "/auth?returnTo=/contributors/uploads" },
-    { icon: LayoutDashboard, label: "Dashboard", path: hasKnownSession ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard" },
-    { icon: User, label: "Profile", path: hasKnownSession ? "/profile" : "/auth?returnTo=/profile" },
   ];
+
+  const userName = user?.displayName || cachedHeader?.email?.split("@")[0] || user?.email?.split("@")[0] || "Contributor";
+  const userEmail = user?.email || cachedHeader?.email || "Not signed in";
+  const initials = userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "U";
 
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950 text-foreground">
@@ -141,16 +145,21 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
             {navItems.map((item) => (
               <NavButton key={item.label} icon={item.icon} label={item.label} active={isActiveRoute(location, item.path)} onClick={() => goTo(item.path)} />
             ))}
-            <AdminNavSlot visible={isAdmin} active={isActiveRoute(location, "/admin")} label="Admin" onClick={() => goTo("/admin")} />
-            <AdminNavSlot visible={isAdmin} active={isActiveRoute(location, "/admin/resources/review")} label="Review" onClick={() => goTo("/admin/resources/review")} />
           </nav>
 
           <div className="flex shrink-0 items-center justify-end gap-2">
-            {hasKnownSession ? (
-              <Button variant="outline" className="hidden h-10 shrink-0 rounded-2xl px-4 font-bold lg:inline-flex" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+            <div className="hidden items-center gap-1 xl:flex">
+              <NavButton icon={LayoutDashboard} label="Dashboard" active={isActiveRoute(location, "/contributors/dashboard")} onClick={() => goTo(hasKnownSession ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")} />
+              <NavButton icon={User} label="Profile" active={isActiveRoute(location, "/profile")} onClick={() => goTo(hasKnownSession ? "/profile" : "/auth?returnTo=/profile")} />
+            </div>
+            {isAdmin && <AdminDropdown active={location.startsWith("/admin")} onNavigate={goTo} />}
+            {hasKnownSession && (
+              <Button variant="ghost" size="icon" className="hidden h-10 w-10 shrink-0 rounded-2xl lg:inline-flex" aria-label="Notifications">
+                <Bell className="h-4 w-4" />
               </Button>
+            )}
+            {hasKnownSession ? (
+              <AccountDropdown name={userName} email={userEmail} role={role} initials={initials} onNavigate={goTo} onSignOut={handleSignOut} />
             ) : (
               <Button className="hidden h-10 shrink-0 rounded-2xl px-4 font-bold lg:inline-flex" onClick={() => goTo("/auth?returnTo=/profile")}>
                 <LogIn className="mr-2 h-4 w-4" />
@@ -169,8 +178,12 @@ export function ContributorPortalLayout({ children }: ContributorPortalShellProp
               {navItems.map((item) => (
                 <MobileNavButton key={item.label} icon={item.icon} label={item.label} onClick={() => goTo(item.path)} />
               ))}
-              {isAdmin && <MobileNavButton icon={ShieldCheck} label="Admin" onClick={() => goTo("/admin")} />}
-              {isAdmin && <MobileNavButton icon={ShieldCheck} label="Review" onClick={() => goTo("/admin/resources/review")} />}
+              <MobileNavButton icon={LayoutDashboard} label="Dashboard" onClick={() => goTo(hasKnownSession ? "/contributors/dashboard" : "/auth?returnTo=/contributors/dashboard")} />
+              <MobileNavButton icon={User} label="Profile" onClick={() => goTo(hasKnownSession ? "/profile" : "/auth?returnTo=/profile")} />
+              {isAdmin && <MobileNavButton icon={ShieldCheck} label="Admin Dashboard" onClick={() => goTo("/admin")} />}
+              {isAdmin && <MobileNavButton icon={HeartHandshake} label="Resource Review Queue" onClick={() => goTo("/admin/resources/review")} />}
+              {isAdmin && <MobileNavButton icon={Files} label="Manage Resources" onClick={() => goTo("/admin/resources")} />}
+              {isAdmin && <MobileNavButton icon={Mail} label="Contact Messages" onClick={() => goTo("/admin/contact-messages")} />}
               {hasKnownSession ? (
                 <MobileNavButton icon={LogOut} label="Sign Out" onClick={handleSignOut} />
               ) : (
@@ -239,19 +252,55 @@ function NavButton({ icon: Icon, label, active, onClick }: { icon: any; label: s
   );
 }
 
-function AdminNavSlot({ visible, active, label, onClick }: { visible: boolean; active?: boolean; label: string; onClick: () => void }) {
+function AdminDropdown({ active, onNavigate }: { active: boolean; onNavigate: (path: string) => void }) {
   return (
-    <Button
-      variant="ghost"
-      className={`h-10 min-w-[92px] shrink-0 rounded-2xl px-3 font-semibold xl:px-4 ${active ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : ""} ${visible ? "" : "invisible pointer-events-none"}`}
-      onClick={onClick}
-      aria-hidden={!visible}
-      aria-current={visible && active ? "page" : undefined}
-      tabIndex={visible ? 0 : -1}
-    >
-      <ShieldCheck className="mr-2 h-4 w-4 shrink-0" />
-      {label}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className={`h-10 shrink-0 rounded-2xl px-3 font-semibold xl:px-4 ${active ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : ""}`}>
+          <ShieldCheck className="mr-2 h-4 w-4 shrink-0" />
+          Admin
+          <ChevronDown className="ml-1 h-3.5 w-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2">
+        <DropdownMenuLabel>Admin Tools</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => onNavigate("/admin")}><LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/admin/resources/review")}><HeartHandshake className="mr-2 h-4 w-4" /> Resource Review Queue</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/admin/resources")}><Files className="mr-2 h-4 w-4" /> Manage Resources</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/admin")}><Users className="mr-2 h-4 w-4" /> Manage Users</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/admin/contact-messages")}><Mail className="mr-2 h-4 w-4" /> Contact Messages</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/admin")}><ShieldCheck className="mr-2 h-4 w-4" /> Reports</DropdownMenuItem>
+        <DropdownMenuItem disabled><Activity className="mr-2 h-4 w-4" /> System Health</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function AccountDropdown({ name, email, role, initials, onNavigate, onSignOut }: { name: string; email: string; role: string; initials: string; onNavigate: (path: string) => void; onSignOut: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="hidden h-10 shrink-0 rounded-full p-0 lg:inline-flex" aria-label="Open profile menu">
+          <Avatar className="h-10 w-10 border border-border/70">
+            <AvatarFallback className="bg-primary/10 text-sm font-black text-primary">{initials}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 rounded-2xl p-2">
+        <DropdownMenuLabel>
+          <span className="block truncate font-black">{name}</span>
+          <span className="block truncate text-xs font-medium text-muted-foreground">{email}</span>
+          <span className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">{role}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onNavigate("/profile")}><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/contributors/dashboard")}><LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard</DropdownMenuItem>
+        <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate("/help")}><HelpCircle className="mr-2 h-4 w-4" /> Help Center</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={onSignOut}><LogOut className="mr-2 h-4 w-4" /> Sign Out</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
