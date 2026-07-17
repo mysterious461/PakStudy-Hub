@@ -82,7 +82,7 @@ export default function Admin() {
           <ActionCard icon={Users} title="Manage Users" text="Inspect user reports and moderation status." button="Manage Users" onClick={() => setLocation("/admin")} />
           <ActionCard icon={UploadCloud} title="Curated Uploads" text="Add academic files manually before public launch." button="Open Upload" onClick={() => setLocation("/admin-upload")} />
           <ActionCard icon={Mail} title="Contact Messages" text="Review support, copyright, partnership, and technical requests." button="Open Inbox" onClick={() => setLocation("/admin/contact-messages")} />
-          <ActionCard icon={BookOpen} title="Academic Hierarchy" text="Manage universities, schools, departments, degree programs, and semesters." button="Manage Hierarchy" onClick={() => setLocation("/admin/academic-hierarchy")} />
+          <ActionCard icon={BookOpen} title="Academic Hierarchy" text="Manage universities, schools, departments, degree programs, and semesters." button="Manage Hierarchy" onClick={() => setLocation("/admin/academic")} />
         </div>
 
         {/* Tabs */}
@@ -169,4 +169,5 @@ function ActionCard({ icon: Icon, title, text, button, onClick }: { icon: any; t
     </Card>
   );
 }
+
 

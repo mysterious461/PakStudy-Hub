@@ -171,9 +171,17 @@ export const adminMessageSchema = z.object({
 
 export const resourceUploadSchema = z.object({
   university: z.string().min(2).max(160),
+  universityId: z.string().max(120).optional().default(""),
+  universityName: z.string().max(160).optional().default(""),
   department: z.string().min(2).max(160),
+  departmentId: z.string().max(120).optional().default(""),
+  departmentName: z.string().max(160).optional().default(""),
   degree: z.string().min(2).max(160),
+  degreeProgramId: z.string().max(120).optional().default(""),
+  degreeProgramName: z.string().max(160).optional().default(""),
   semester: z.string().min(1).max(60),
+  semesterId: z.string().max(120).optional().default(""),
+  semesterLabel: z.string().max(80).optional().default(""),
   course: z.string().min(2).max(160),
   resourceType: z.enum(["notes", "past_papers", "past_paper", "book", "slides", "assignment_solution", "assignment", "lab_manual", "formula_sheet", "solution", "image", "voice_note", "other"]),
   title: z.string().min(3).max(180),
@@ -187,10 +195,20 @@ export const resourceUploadSchema = z.object({
 
 export const contributorResourceSchema = z.object({
   university: z.string().min(2).max(160),
+  universityId: z.string().max(120).optional().default(""),
+  universityName: z.string().max(160).optional().default(""),
   faculty: z.string().min(2).max(160),
+  facultyId: z.string().max(120).optional().default(""),
+  facultyName: z.string().max(160).optional().default(""),
   department: z.string().min(2).max(160),
+  departmentId: z.string().max(120).optional().default(""),
+  departmentName: z.string().max(160).optional().default(""),
   degree: z.string().min(2).max(160),
+  degreeProgramId: z.string().max(120).optional().default(""),
+  degreeProgramName: z.string().max(160).optional().default(""),
   semester: z.string().min(1).max(60),
+  semesterId: z.string().max(120).optional().default(""),
+  semesterLabel: z.string().max(80).optional().default(""),
   courseCode: z.string().max(80).optional().default(""),
   courseTitle: z.string().min(2).max(180),
   course: z.string().max(160).optional().default(""),
@@ -269,6 +287,14 @@ export type AcademicResource = AcademicResourceMetadata & {
   bucket?: string;
   hasPermission?: boolean;
   faculty?: string;
+  facultyId?: string;
+  facultyName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  degreeProgramId?: string;
+  degreeProgramName?: string;
+  semesterId?: string;
+  semesterLabel?: string;
   courseCode?: string;
   courseTitle?: string;
   resourceCategory?: string;
@@ -375,6 +401,10 @@ export type PaymentIntentResponse = {
   amount: number;
   currency: string;
 };
+
+
+
+
 
 
 

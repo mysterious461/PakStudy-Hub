@@ -21,6 +21,7 @@ import AdminResources from "@/pages/AdminResources";
 import AdminResourceReview from "@/pages/AdminResourceReview";
 import AdminContactMessages from "@/pages/AdminContactMessages";
 import AdminAcademicHierarchy from "@/pages/AdminAcademicHierarchy";
+import AdminAcademicImport from "@/pages/AdminAcademicImport";
 import Achievements from "@/pages/Achievements";
 import Settings from "@/pages/Settings";
 import Flashcards from "@/pages/Flashcards";
@@ -49,6 +50,8 @@ function Router() {
     location === "/admin/resources/review" ||
     location === "/admin/contact-messages" ||
     location === "/admin/academic-hierarchy" ||
+    location === "/admin/academic" ||
+    location === "/admin/academic/import" ||
     location.startsWith("/about") ||
     location.startsWith("/guidelines") ||
     location.startsWith("/help") ||
@@ -80,6 +83,8 @@ function Router() {
           <Route path="/admin/resources/review" component={AdminResourceReview} />
           <Route path="/admin/resources" component={AdminResources} />
           <Route path="/admin/contact-messages" component={AdminContactMessages} />
+          <Route path="/admin/academic/import" component={AdminAcademicImport} />
+          <Route path="/admin/academic" component={AdminAcademicHierarchy} />
           <Route path="/admin/academic-hierarchy" component={AdminAcademicHierarchy} />
           <Route path="/admin" component={Admin} />
           <Route path="/about" component={AboutPakStudy} />
@@ -140,4 +145,5 @@ function App() {
 }
 
 export default App;
+
 

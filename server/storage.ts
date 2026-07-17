@@ -193,11 +193,21 @@ function normalizeResource(id: string, data: FirebaseFirestore.DocumentData): Ac
 
   return {
     id,
-    university: data.university,
-    faculty: data.faculty ?? data.department ?? "",
-    department: data.department,
-    degree: data.degree,
-    semester: data.semester,
+    university: data.universityName ?? data.university,
+    universityId: data.universityId ?? "",
+    universityName: data.universityName ?? data.university ?? "",
+    faculty: data.facultyName ?? data.faculty ?? data.department ?? "",
+    facultyId: data.facultyId ?? "",
+    facultyName: data.facultyName ?? data.faculty ?? data.department ?? "",
+    department: data.departmentName ?? data.department,
+    departmentId: data.departmentId ?? "",
+    departmentName: data.departmentName ?? data.department ?? "",
+    degree: data.degreeProgramName ?? data.degree,
+    degreeProgramId: data.degreeProgramId ?? "",
+    degreeProgramName: data.degreeProgramName ?? data.degree ?? "",
+    semester: data.semesterLabel ?? data.semester,
+    semesterId: data.semesterId ?? "",
+    semesterLabel: data.semesterLabel ?? data.semester ?? "",
     course: data.course,
     courseCode: data.courseCode ?? data.course ?? "",
     courseTitle: data.courseTitle ?? data.subject ?? data.course ?? "",
@@ -922,4 +932,7 @@ export class FirestoreStorage implements IStorage {
 }
 
 export const storage = new FirestoreStorage();
+
+
+
 

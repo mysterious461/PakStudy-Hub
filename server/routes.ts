@@ -253,6 +253,125 @@ function sortAcademicOptions<T extends Record<string, string[]>>(options: T) {
   Object.values(options).forEach((items) => items.sort((a, b) => a.localeCompare(b)));
   return options;
 }
+type AcademicOptionListItem = ReturnType<typeof normalizeAcademicOption>;
+
+function emptyAcademicOptionObjects() {
+  return {
+    universityOptions: [] as AcademicOptionListItem[],
+    facultyOptions: [] as AcademicOptionListItem[],
+    departmentOptions: [] as AcademicOptionListItem[],
+    degreeOptions: [] as AcademicOptionListItem[],
+    semesterOptions: [] as AcademicOptionListItem[],
+  };
+}
+
+function academicObjectKey(level: AcademicLevel) {
+  return level === "university" ? "universityOptions"
+    : level === "faculty" ? "facultyOptions"
+      : level === "department" ? "departmentOptions"
+        : level === "degree" ? "degreeOptions"
+          : "semesterOptions";
+}
+
+function addOptionObject(target: ReturnType<typeof emptyAcademicOptionObjects>, option: AcademicOptionListItem) {
+  if (!academicLevels.includes(option.level as AcademicLevel)) return;
+  const key = academicObjectKey(option.level as AcademicLevel);
+  if (!target[key].some((item) => item.id === option.id || item.value.toLowerCase() === option.value.toLowerCase())) target[key].push(option);
+}
+
+function normalizeKey(value: unknown) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function parseCsvRows(content: string) {
+  const lines = content.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length < 2) return [];
+  const parseLine = (line: string) => {
+    const result: string[] = [];
+    let current = "";
+    let quoted = false;
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+      const next = line[index + 1];
+      if (char === '"' && quoted && next === '"') { current += '"'; index += 1; }
+      else if (char === '"') quoted = !quoted;
+      else if (char === "," && !quoted) { result.push(current.trim()); current = ""; }
+      else current += char;
+    }
+    result.push(current.trim());
+    return result;
+  };
+  const headers = parseLine(lines[0]).map((header) => header.trim());
+  return lines.slice(1).map((line) => {
+    const values = parseLine(line);
+    return headers.reduce((row, header, index) => ({ ...row, [header]: values[index] ?? "" }), {} as Record<string, string>);
+  });
+}
+
+function importItemFromUniversityRow(row: Record<string, any>, source: string) {
+  const name = String(row.name || row.university || "").trim();
+  const shortName = String(row.shortName || row.short_name || "").trim();
+  const officialWebsite = String(row.officialWebsite || row.official_website || row.website || "").trim();
+  return {
+    detectedType: "university",
+    value: name,
+    shortName,
+    sector: row.sector || "",
+    province: row.province || "",
+    city: row.city || "",
+    officialWebsite,
+    hecRecognized: row.hecRecognized === true || String(row.hecRecognized || "").toLowerCase() === "true",
+    sourceUrl: row.sourceUrl || source || officialWebsite,
+    extractedTextSnippet: [name, shortName, row.city, officialWebsite].filter(Boolean).join(" / ").slice(0, 500),
+    confidence: name && officialWebsite ? 0.95 : 0.75,
+    duplicateKeys: [name, shortName, officialWebsite].map(normalizeKey).filter(Boolean),
+  };
+}
+
+function detectAcademicItemsFromText(text: string, sourceUrl: string) {
+  const cleanLines = text.split(/\n+/).map((line) => line.replace(/\s+/g, " ").trim()).filter((line) => line.length >= 4 && line.length <= 180);
+  const candidates: Array<Record<string, any>> = [];
+  const seen = new Set<string>();
+  for (const line of cleanLines.slice(0, 900)) {
+    const lower = line.toLowerCase();
+    let detectedType = "";
+    let confidence = 0.55;
+    if (/\b(faculty|school) of\b/i.test(line)) { detectedType = "faculty"; confidence = 0.82; }
+    else if (/\b(department|dept\.) of\b/i.test(line)) { detectedType = "department"; confidence = 0.84; }
+    else if (/\b(bs|bsc|ms|msc|mphil|phd|bachelor|master)\b/i.test(line) && /\b(program|degree|science|engineering|studies|arts|business|medicine|education|law)\b/i.test(line)) { detectedType = "degree"; confidence = 0.76; }
+    else if (/\bsemester\s+[0-9ivx]+\b/i.test(line)) { detectedType = "semester"; confidence = 0.7; }
+    else if (/^[A-Z]{2,5}\s?\d{2,4}\b/.test(line) || lower.includes("course title")) { detectedType = "course_suggestion"; confidence = 0.62; }
+    if (!detectedType) continue;
+    const key = `${detectedType}:${normalizeKey(line)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    candidates.push({ detectedType, value: line.replace(/^[-•\d.\s]+/, "").trim(), sourceUrl, extractedTextSnippet: line, confidence, duplicateKeys: [normalizeKey(line)] });
+  }
+  return candidates.slice(0, 120);
+}
+
+async function isUrlAllowedByRobots(targetUrl: string) {
+  const parsed = new URL(targetUrl);
+  const robotsUrl = `${parsed.origin}/robots.txt`;
+  try {
+    const response = await fetch(robotsUrl, { headers: { "User-Agent": "PakStudyHubBot/1.0" } });
+    if (!response.ok) return { allowed: true, robotsUrl, reason: "robots_unavailable" };
+    const robotsText = await response.text();
+    let applies = false;
+    for (const rawLine of robotsText.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const [fieldRaw, ...rest] = line.split(":");
+      const field = fieldRaw.toLowerCase();
+      const value = rest.join(":").trim();
+      if (field === "user-agent") applies = value === "*" || value.toLowerCase().includes("pakstudy");
+      if (applies && field === "disallow" && value && parsed.pathname.startsWith(value)) return { allowed: false, robotsUrl, reason: `disallowed:${value}` };
+    }
+    return { allowed: true, robotsUrl, reason: "allowed" };
+  } catch {
+    return { allowed: true, robotsUrl, reason: "robots_fetch_failed" };
+  }
+}
 async function writeResourceAuditLog(input: {
   action: "resource_deleted" | "resource_hidden" | "resource_storage_path_backfill";
   resourceId?: string;
@@ -291,11 +410,21 @@ function normalizePublicResource(id: string, data: Record<string, any>) {
   };
   return {
     id,
-    university: data.university ?? "",
-    faculty: data.faculty ?? data.department ?? "",
-    department: data.department ?? data.faculty ?? "",
-    degree: data.degree ?? "",
-    semester: data.semester ?? "",
+    university: data.universityName ?? data.university ?? "",
+    universityId: data.universityId ?? "",
+    universityName: data.universityName ?? data.university ?? "",
+    faculty: data.facultyName ?? data.faculty ?? data.department ?? "",
+    facultyId: data.facultyId ?? "",
+    facultyName: data.facultyName ?? data.faculty ?? data.department ?? "",
+    department: data.departmentName ?? data.department ?? data.faculty ?? "",
+    departmentId: data.departmentId ?? "",
+    departmentName: data.departmentName ?? data.department ?? data.faculty ?? "",
+    degree: data.degreeProgramName ?? data.degree ?? "",
+    degreeProgramId: data.degreeProgramId ?? "",
+    degreeProgramName: data.degreeProgramName ?? data.degree ?? "",
+    semester: data.semesterLabel ?? data.semester ?? "",
+    semesterId: data.semesterId ?? "",
+    semesterLabel: data.semesterLabel ?? data.semester ?? "",
     course: data.course ?? data.courseCode ?? "",
     courseCode: data.courseCode ?? data.course ?? "",
     courseTitle: data.courseTitle ?? data.subject ?? data.course ?? "",
@@ -571,7 +700,10 @@ export async function registerRoutes(
         addOptionValue(options, "semester", data.semester);
       });
 
-      return sortAcademicOptions(options);
+      const optionObjects = emptyAcademicOptionObjects();
+      managedSnap.docs.forEach((doc) => addOptionObject(optionObjects, normalizeAcademicOption(doc.id, doc.data())));
+      Object.values(optionObjects).forEach((items) => items.sort((a, b) => a.value.localeCompare(b.value)));
+      return { ...sortAcademicOptions(options), ...optionObjects };
     }, "/api/academic/options"),
   );
 
@@ -1438,5 +1570,10 @@ export async function registerRoutes(
 
   return httpServer;
 }
+
+
+
+
+
 
 
